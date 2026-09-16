@@ -1,0 +1,74 @@
+{
+  "run": {
+    "checkpoint": "best_rppg_model_v2.pth",
+    "model": "v2",
+    "normalize": "raw",
+    "split": "legacyval",
+    "stride": 150,
+    "bandpass": false,
+    "params": 507073
+  },
+  "summary": {
+    "n_windows": 71,
+    "mse": 0.6492538071284673,
+    "pearson_mean": 0.6956532044082822,
+    "pearson_median": 0.7148026749791703,
+    "pearson_frac_gt_0.5": 0.9295774647887324,
+    "hr_mae_bpm": 1.0985915492957758,
+    "hr_rmse_bpm": 2.106328492498228,
+    "hr_within_5bpm_frac": 0.971830985915493,
+    "snr_db_mean": 1.541547367689787,
+    "amplitude_ratio_mean": 0.3823944550344571,
+    "bandpass": false
+  },
+  "per_subject": {
+    "subject1": {
+      "n_windows": 10,
+      "mse": 0.6651694625707664,
+      "pearson_mean": 0.6431836283772592,
+      "hr_mae_bpm": 1.0499999999999985,
+      "snr_db_mean": 1.599131831450203,
+      "amplitude_ratio_mean": 0.38388317580785536
+    },
+    "subject10": {
+      "n_windows": 13,
+      "mse": 0.6928865436198282,
+      "pearson_mean": 0.6487877414176967,
+      "hr_mae_bpm": 1.384615384615388,
+      "snr_db_mean": 1.144484260409579,
+      "amplitude_ratio_mean": 0.3127147205747726
+    },
+    "subject35": {
+      "n_windows": 13,
+      "mse": 0.40040335769890995,
+      "pearson_mean": 0.7904615557797025,
+      "hr_mae_bpm": 0.4615384615384626,
+      "snr_db_mean": 3.521692324517199,
+      "amplitude_ratio_mean": 0.7602782243824051
+    },
+    "subject39": {
+      "n_windows": 13,
+      "mse": 0.76193738085305,
+      "pearson_mean": 0.7548403017157468,
+      "hr_mae_bpm": 0.576923076923078,
+      "snr_db_mean": 2.2869449404171505,
+      "amplitude_ratio_mean": 0.20255628937943168
+    },
+    "subject4": {
+      "n_windows": 9,
+      "mse": 0.6065326464979289,
+      "pearson_mean": 0.6857119668128978,
+      "hr_mae_bpm": 1.8333333333333348,
+      "snr_db_mean": -0.2109499913549268,
+      "amplitude_ratio_mean": 0.4135000019684791
+    },
+    "subject9": {
+      "n_windows": 13,
+      "mse": 0.7591213225922234,
+      "pearson_mean": 0.6357668263098815,
+      "hr_mae_bpm": 1.500000000000001,
+      "snr_db_mean": 0.38203960647662605,
+      "amplitude_ratio_mean": 0.2313488065596669
+    }
+  }
+}

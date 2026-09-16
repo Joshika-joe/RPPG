@@ -1,0 +1,27 @@
+# Environment
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Raw data (70 GB, obtain UBFC-rPPG separately) and regenerable preprocessing cache
+DATASET_2/
+checkpoints/
+
+# Retired v1 (315 MB dead checkpoint)
+archive/
+
+# Scratch
+results/_smoke*/
+inspection
+
+# Model weights: only run checkpoints (results/<run>/*.pth, 2-6 MB) and the
+# legacy v2 baseline are tracked so collaborators can push trained models back.
+*.pth
+!best_rppg_model_v2.pth
+!results/*/best.pth
+!results/*/last.pth
+
+# OS / editor
+.DS_Store
+Thumbs.db

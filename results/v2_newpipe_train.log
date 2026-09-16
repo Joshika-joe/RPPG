@@ -1,0 +1,14 @@
+
+=== TRAINING ===
+  run            D:\projects\RPPG\results\v2_newpipe
+  model          v2 (507,073 params)
+  device         cpu  (threads 12)
+  train windows  1754 total (stride 30), 400 per epoch
+  val windows    71 (stride 150)
+  normalize      temporal   augment True
+  loss mse  lr 0.0001  wd 0.0001  batch 4
+  epochs 40  patience 8  select on val_mse
+
+Epoch 001/40 | train 0.8116 | val MSE 0.6450  r 0.661  HR MAE 8.77 bpm  amp 0.63 | 16.2 min  * best
+Epoch 002/40 | train 0.5982 | val MSE 0.6057  r 0.688  HR MAE 2.43 bpm  amp 0.53 | 12.4 min  * best
+Epoch 003/40 | train 0.5286 | val MSE 0.6019  r 0.695  HR MAE 1.84 bpm  amp 0.59 | 12.6 min  * best
