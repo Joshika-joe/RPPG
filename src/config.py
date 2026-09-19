@@ -64,6 +64,8 @@ AUG_MAX_SHIFT = 4  # pixels, random spatial shift (edge-padded)
 # ==============================================================================
 HR_BAND_HZ = (0.7, 4.0)  # 42–240 bpm; plausible human HR range for FFT peak search
 HR_TOLERANCE_BPM = 5.0
+HR_SUBHARMONIC_RATIO = 0.5  # prefer a peak near f/2 over the top FFT peak f if its power is >= this fraction
+HR_SUBHARMONIC_TOL = 0.12  # relative half-width of the search band around f/2
 
 # ==============================================================================
 # TRAINING DEFAULTS

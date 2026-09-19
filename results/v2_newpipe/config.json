@@ -14,6 +14,6 @@
   "select_on": "mse",
   "seed": 42,
   "num_workers": 0,
-  "threads": 0,
-  "resume": false
+  "threads": 8,
+  "resume": true
 }

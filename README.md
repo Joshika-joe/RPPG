@@ -85,19 +85,22 @@ background pixels. `raw` (pixels / 255) is what the legacy checkpoint was traine
 
 ## Results
 
-Legacy v2 checkpoint (`best_rppg_model_v2.pth`, trained on 362 non-overlapping raw-pixel
-windows, MSE loss):
+Held-out **test** split (7 subjects, 90 non-overlapping 5-s windows). HR reference = FFT
+peak of the ground-truth BVP with harmonic-aware peak picking (`config.HR_SUBHARMONIC_*`).
 
-| split | windows | MSE | Pearson r | HR MAE | HR RMSE | within 5 bpm | SNR | amp. ratio |
-|---|---|---|---|---|---|---|---|---|
-| val  | 71 | 0.631 | 0.710 | 0.79 bpm | 1.24 | 100 % | 2.85 dB | 0.39 |
-| test | 90 | 0.671 | 0.634 | 3.36 bpm | 12.22 | 92 % | 0.71 dB | 0.47 |
+| run | data pipeline | loss | MSE | Pearson r | HR MAE | HR RMSE | within 5 bpm | SNR | amp. ratio |
+|---|---|---|---|---|---|---|---|---|---|
+| legacy v2 (`best_rppg_model_v2.pth`) | 362 non-overlapping windows, raw pixels | MSE | 0.671 | 0.634 | 2.45 bpm | 6.83 | 92.2 % | 0.73 dB | 0.47 |
+| **v2_newpipe** (`results/v2_newpipe/`) | stride 30 (1,754 windows), temporal norm, augmentation | MSE | **0.431** | **0.759** | **1.22 bpm** | **2.48** | **96.7 %** | **2.01 dB** | **0.73** |
 
-Val is optimistic (it selected the checkpoint). Test errors are dominated by a few windows
-where the low-amplitude prediction's FFT peak lands on a harmonic (subject3 worst window:
-97 bpm off). Amplitude ratio ≈ 0.4 is the MSE regression-to-the-mean effect.
+Same model, same loss, same optimizer and selection rule — only the data pipeline changed.
+Validation (used for early stopping, so optimistic): legacy r 0.710 / HR MAE 0.79 bpm;
+v2_newpipe r 0.817 / HR MAE 0.90 bpm. v2_newpipe early-stopped at epoch 26 (best epoch 18),
+~8.5–14 min/epoch on a 12-core laptop CPU.
 
-Runs on the new pipeline are added here as they finish.
+Remaining test errors: subject12's first 10 s (irregular reference waveform) and one window
+of subject20 with an HR ramp inside the window. Amplitude ratio 0.73 is the residual MSE
+regression-to-the-mean; a correlation-based loss is the next step.
 
 ## Collaborator workflow (training on another machine)
 
@@ -118,16 +121,15 @@ pip install -r requirements.txt
 # 2. Preprocess (~3.5 min on CPU)
 python -m src.preprocessing
 
-# 3. Train. The repo ships results/v2_newpipe/ stopped after epoch 3 (laptop overheated);
-#    --resume continues from last.pth. Drop --resume to start fresh.
-python -m src.train --model v2 --run v2_newpipe --resume
+# 3. Train (a new run name; --resume continues an interrupted run from its last.pth)
+python -m src.train --model v2 --run my_run
 
 # 4. Evaluate on the held-out test split
-python -m src.evaluate --run results/v2_newpipe --split test
+python -m src.evaluate --run results/my_run --split test
 
 # 5. Push the trained run + metrics back
-git add results/v2_newpipe results/v2_newpipe_test
-git commit -m "Train v2_newpipe to completion"
+git add results/my_run results/my_run_test
+git commit -m "Add my_run"
 git push
 ```
 

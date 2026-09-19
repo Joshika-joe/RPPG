@@ -1,0 +1,76 @@
+{
+  "run": {
+    "checkpoint": "results\\v2_newpipe\\best.pth",
+    "model": "v2",
+    "normalize": "temporal",
+    "split": "val",
+    "stride": 150,
+    "bandpass": false,
+    "params": 507073
+  },
+  "summary": {
+    "n_windows": 71,
+    "mse": 0.36344901742636776,
+    "pearson_mean": 0.8166017144707328,
+    "pearson_median": 0.82647172936003,
+    "pearson_frac_gt_0.5": 1.0,
+    "hr_mae_bpm": 0.8976808809655127,
+    "hr_rmse_bpm": 1.3728391422643555,
+    "hr_within_5bpm_frac": 0.9859154929577465,
+    "snr_db_mean": 3.811941027920584,
+    "amplitude_ratio_mean": 0.7770897616522661,
+    "bandpass": false,
+    "hr_mae_vs_oximeter_bpm": 3.542427937337352,
+    "hr_gt_fft_vs_oximeter_mae_bpm": 3.8404122686502338
+  },
+  "per_subject": {
+    "subject1": {
+      "n_windows": 10,
+      "mse": 0.48941818115660346,
+      "pearson_mean": 0.7239902676406993,
+      "hr_mae_bpm": 1.0269305584816224,
+      "snr_db_mean": 3.0726948070858864,
+      "amplitude_ratio_mean": 0.810274370145548
+    },
+    "subject10": {
+      "n_windows": 13,
+      "mse": 0.3509634451174214,
+      "pearson_mean": 0.8289749857299399,
+      "hr_mae_bpm": 0.8043207198629804,
+      "snr_db_mean": 4.2808809091407705,
+      "amplitude_ratio_mean": 0.7247037807023685
+    },
+    "subject35": {
+      "n_windows": 13,
+      "mse": 0.2896335525577101,
+      "pearson_mean": 0.8532010650697507,
+      "hr_mae_bpm": 0.5752842194913327,
+      "snr_db_mean": 5.274550932230999,
+      "amplitude_ratio_mean": 0.9782093178119419
+    },
+    "subject39": {
+      "n_windows": 13,
+      "mse": 0.30783159266301185,
+      "pearson_mean": 0.8492450690839166,
+      "hr_mae_bpm": 1.0282597335209096,
+      "snr_db_mean": 4.179805849168732,
+      "amplitude_ratio_mean": 0.6915653319042416
+    },
+    "subject4": {
+      "n_windows": 9,
+      "mse": 0.40163948826009466,
+      "pearson_mean": 0.7896836309043788,
+      "hr_mae_bpm": 1.6426102552139557,
+      "snr_db_mean": 2.141949067879552,
+      "amplitude_ratio_mean": 0.9261730532856878
+    },
+    "subject9": {
+      "n_windows": 13,
+      "mse": 0.38202856592071976,
+      "pearson_mean": 0.8248609087991341,
+      "hr_mae_bpm": 0.5677156861101295,
+      "snr_db_mean": 3.237325640273852,
+      "amplitude_ratio_mean": 0.5851424846802342
+    }
+  }
+}

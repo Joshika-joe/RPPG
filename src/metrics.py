@@ -59,14 +59,36 @@ def _spectrum(sig: np.ndarray, fs: float, nfft_factor: int = 8):
 
 
 def estimate_hr_fft(
-    sig: np.ndarray, fs: float, band=config.HR_BAND_HZ, nfft_factor: int = 8
+    sig: np.ndarray,
+    fs: float,
+    band=config.HR_BAND_HZ,
+    nfft_factor: int = 8,
+    subharmonic_ratio: float = config.HR_SUBHARMONIC_RATIO,
 ) -> float:
-    """HR in bpm from the dominant spectral peak inside `band`."""
+    """
+    HR in bpm from the dominant spectral peak inside `band`.
+
+    Peaky BVP waveforms can put more power in the 2nd harmonic than in the fundamental, so
+    after finding the top peak f we also look at f/2: if there is a peak there with at least
+    `subharmonic_ratio` of the top peak's power, f/2 is the heart rate.
+    """
     freqs, power = _spectrum(sig, fs, nfft_factor)
     mask = (freqs >= band[0]) & (freqs <= band[1])
     if not mask.any():
         return float("nan")
-    return float(freqs[mask][np.argmax(power[mask])] * 60.0)
+    fb, pb = freqs[mask], power[mask]
+    i_max = int(np.argmax(pb))
+    f_max, p_max = fb[i_max], pb[i_max]
+
+    f_half = f_max / 2.0
+    if subharmonic_ratio > 0 and f_half >= band[0]:
+        near = np.abs(fb - f_half) <= config.HR_SUBHARMONIC_TOL * f_half  # relative band around f/2
+        if near.any():
+            j = int(np.flatnonzero(near)[np.argmax(pb[near])])
+            is_local_peak = (j == 0 or pb[j] >= pb[j - 1]) and (j == len(pb) - 1 or pb[j] >= pb[j + 1])
+            if is_local_peak and pb[j] >= subharmonic_ratio * p_max:
+                return float(fb[j] * 60.0)
+    return float(f_max * 60.0)
 
 
 def snr_db(

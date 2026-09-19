@@ -14,14 +14,14 @@
     "pearson_mean": 0.6344111010623631,
     "pearson_median": 0.6630159470095577,
     "pearson_frac_gt_0.5": 0.8333333333333334,
-    "hr_mae_bpm": 3.3563471487089993,
-    "hr_rmse_bpm": 12.219408110638295,
+    "hr_mae_bpm": 2.453657145120258,
+    "hr_rmse_bpm": 6.829562944242742,
     "hr_within_5bpm_frac": 0.9222222222222223,
-    "snr_db_mean": 0.7061595279205618,
+    "snr_db_mean": 0.7322093594922995,
     "amplitude_ratio_mean": 0.4667816624183109,
     "bandpass": false,
     "hr_mae_vs_oximeter_bpm": 20.174473548947113,
-    "hr_gt_fft_vs_oximeter_mae_bpm": 20.170139556550005
+    "hr_gt_fft_vs_oximeter_mae_bpm": 19.050942696178844
   },
   "per_subject": {
     "subject11": {
@@ -68,8 +68,8 @@
       "n_windows": 12,
       "mse": 0.669118052855907,
       "pearson_mean": 0.7253094757328645,
-      "hr_mae_bpm": 9.355150946283327,
-      "snr_db_mean": 0.16560562085726757,
+      "hr_mae_bpm": 2.5849759193677655,
+      "snr_db_mean": 0.3609793576453006,
       "amplitude_ratio_mean": 0.2848750359844977
     },
     "subject48": {
