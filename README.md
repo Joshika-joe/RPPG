@@ -52,14 +52,21 @@ per-subject fps is stored in `meta.json` and used for every HR computation.
 ## 2. Train
 
 ```bash
-python -m src.train --model v2 --run v2_newpipe
-python -m src.train --model v2 --run v2_newpipe --resume     # continue after interruption
+python -m src.train --model v3 --run my_run --loss pearson --optimizer adamw --lr 1e-3 --wd 1e-2 --scheduler cosine --warmup-epochs 3 --grad-clip 1.0 --select-on hr_mae
+python -m src.train --model v3 --run my_run --resume          # continue after interruption
 ```
 
 Defaults (`src/config.py`): 150-frame windows, train stride 30 (1,754 overlapping windows
 from 29 subjects), 400 random windows per epoch, temporal input normalization, augmentation
-(h-flip, brightness / contrast, ±4 px shift — all constant over time), Adam 1e-4, batch 4,
-MSE loss, early stopping on val MSE (patience 8). Every option is a CLI flag.
+(h-flip, brightness / contrast, ±4 px shift — all constant over time), batch 4. Every option
+is a CLI flag. The best recipe so far (v3_pearson):
+
+```bash
+python -m src.train --model v3 --run v3_pearson --loss pearson --optimizer adamw --lr 1e-3     --wd 1e-2 --scheduler cosine --warmup-epochs 3 --grad-clip 1.0 --select-on hr_mae     --epochs 40 --patience 15 --threads 8
+```
+
+`--loss pearson` is (1 − Pearson r) + 0.2·MSE: scale-invariant, so the model is rewarded for
+waveform shape rather than for hedging toward zero amplitude.
 
 ## 3. Evaluate
 
@@ -104,12 +111,21 @@ peak of the ground-truth BVP with harmonic-aware peak picking (`config.HR_SUBHAR
 |---|---|---|---|---|---|---|---|---|---|
 | legacy v2 (`best_rppg_model_v2.pth`) | 362 non-overlapping windows, raw pixels | MSE | 0.671 | 0.634 | 2.45 bpm | 6.83 | 92.2 % | 0.73 dB | 0.47 |
 | **v2_newpipe** (`results/v2_newpipe/`) | stride 30 (1,754 windows), temporal norm, augmentation | MSE | **0.431** | **0.759** | **1.22 bpm** | **2.48** | **96.7 %** | 2.01 dB | 0.73 |
-| v3_newpipe (`results/v3_newpipe/`), 2D+1D, 168K params | same as v2_newpipe | MSE | 0.435 | 0.753 | 1.73 bpm | 5.21 | 95.6 % | **2.32 dB** | **0.77** |
+| v3_newpipe (`results/v3_newpipe/`), 2D+1D, 168K params | same as v2_newpipe | MSE | 0.435 | 0.753 | 1.73 bpm | 5.21 | 95.6 % | 2.32 dB | 0.77 |
+| **v3_pearson** (`results/v3_pearson/`) | same as v2_newpipe | (1−r) + 0.2·MSE, AdamW 1e-3 cosine | **0.348** | **0.811** | **1.07 bpm** | **1.62** | **98.9 %** | **3.27 dB** | **0.79** |
 
 v2_newpipe vs legacy: same model, loss, optimizer and selection rule — only the data
 pipeline changed. v3_newpipe vs v2_newpipe: same everything, only the architecture changed.
+v3_pearson vs v3_newpipe: same data and architecture; loss, optimizer (AdamW, wd 1e-2,
+3-epoch warmup + cosine, grad clip 1.0) and selection rule (val HR MAE) changed.
 Validation (used for early stopping, so optimistic): legacy r 0.710 / HR MAE 0.79 bpm;
-v2_newpipe r 0.817 / 0.90 bpm; v3_newpipe r 0.824 / 0.98 bpm.
+v2_newpipe r 0.817 / 0.90; v3_newpipe r 0.824 / 0.98; v3_pearson r 0.853 / 0.69.
+
+v3_pearson: no test window is off by more than 5 bpm (max 4.6), every subject has mean
+r >= 0.70, and it reached v3_newpipe's final val r after 4 epochs (2 min each). Early-stopped
+at epoch 27, best epoch 12. Note the cosine schedule had not finished (lr 2.9e-4 at stop) and
+val r was still rising (0.856 at epoch 27 vs 0.853 at the selected epoch 12) - HR MAE is a
+noisier selection criterion than Pearson r; a run selected on val r may do slightly better.
 
 v2_newpipe early-stopped at epoch 26 (best 18), ~8.5–14 min/epoch on a 12-core laptop CPU.
 v3_newpipe ran all 40 epochs (best 33) at 3.3 min/epoch with val loss still falling - it is
@@ -119,9 +135,8 @@ sub-harmonic pick); median HR error is identical (1.45 vs 1.44 bpm).
 `results/v3_newpipe_test/attention.png` shows the learned spatial attention: forehead and
 cheeks, avoiding hair, eyes, background and beard, with no supervision on location.
 
-Remaining test errors: subject12's first 10 s (irregular reference waveform) and one window
-of subject20 with an HR ramp inside the window. Amplitude ratio 0.73 is the residual MSE
-regression-to-the-mean; a correlation-based loss is the next step.
+Remaining test errors are concentrated in subject12 (irregular reference waveform in its
+first 10 s) and subject48 (lowest SNR video).
 
 ## Collaborator workflow (training on another machine)
 

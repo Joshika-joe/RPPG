@@ -1,0 +1,44 @@
+
+=== TRAINING ===
+  run            D:\projects\RPPG\results\v3_pearson
+  model          v3 (167,562 params)
+  device         cpu  (threads 8)
+  train windows  1754 total (stride 30), 400 per epoch
+  val windows    71 (stride 150)
+  normalize      temporal   augment True
+  loss pearson  optimizer adamw  lr 0.001  wd 0.01  batch 4
+  scheduler cosine (warmup 3 ep)  grad clip 1.0
+  epochs 40  patience 15  select on val_hr_mae
+
+Epoch 001/40 | train 1.1072 | val MSE 0.8535  r 0.705  HR MAE 1.57 bpm  amp 0.95 | lr 3.4e-04 | 2.0 min  * best
+Epoch 002/40 | train 0.4329 | val MSE 0.5070  r 0.760  HR MAE 1.17 bpm  amp 0.76 | lr 6.7e-04 | 1.9 min  * best
+Epoch 003/40 | train 0.3336 | val MSE 0.4865  r 0.755  HR MAE 1.44 bpm  amp 0.60 | lr 1.0e-03 | 1.9 min
+Epoch 004/40 | train 0.2722 | val MSE 0.3814  r 0.815  HR MAE 1.11 bpm  amp 0.81 | lr 1.0e-03 | 1.9 min  * best
+Epoch 005/40 | train 0.2623 | val MSE 0.3744  r 0.812  HR MAE 1.25 bpm  amp 0.81 | lr 9.9e-04 | 1.9 min
+Epoch 006/40 | train 0.2304 | val MSE 0.3694  r 0.823  HR MAE 1.00 bpm  amp 0.90 | lr 9.8e-04 | 2.0 min  * best
+Epoch 007/40 | train 0.2138 | val MSE 0.3582  r 0.847  HR MAE 1.09 bpm  amp 1.01 | lr 9.7e-04 | 2.1 min
+Epoch 008/40 | train 0.2060 | val MSE 0.3650  r 0.834  HR MAE 0.92 bpm  amp 0.95 | lr 9.6e-04 | 2.1 min  * best
+Epoch 009/40 | train 0.1971 | val MSE 0.3222  r 0.838  HR MAE 1.06 bpm  amp 0.82 | lr 9.4e-04 | 2.1 min
+Epoch 010/40 | train 0.1949 | val MSE 0.3274  r 0.845  HR MAE 1.17 bpm  amp 0.89 | lr 9.2e-04 | 2.1 min
+Epoch 011/40 | train 0.1886 | val MSE 0.3956  r 0.795  HR MAE 0.92 bpm  amp 0.83 | lr 8.9e-04 | 2.1 min  * best
+Epoch 012/40 | train 0.1903 | val MSE 0.2836  r 0.853  HR MAE 0.69 bpm  amp 0.86 | lr 8.6e-04 | 2.1 min  * best
+Epoch 013/40 | train 0.1716 | val MSE 0.3347  r 0.824  HR MAE 0.88 bpm  amp 0.83 | lr 8.3e-04 | 2.1 min
+Epoch 014/40 | train 0.1673 | val MSE 0.3169  r 0.835  HR MAE 0.79 bpm  amp 0.84 | lr 8.0e-04 | 2.2 min
+Epoch 015/40 | train 0.1636 | val MSE 0.3004  r 0.849  HR MAE 0.81 bpm  amp 0.88 | lr 7.7e-04 | 2.7 min
+Epoch 016/40 | train 0.1644 | val MSE 0.2971  r 0.844  HR MAE 0.79 bpm  amp 0.85 | lr 7.3e-04 | 3.4 min
+Epoch 017/40 | train 0.1521 | val MSE 0.4122  r 0.771  HR MAE 0.84 bpm  amp 0.80 | lr 6.9e-04 | 3.4 min
+Epoch 018/40 | train 0.1607 | val MSE 0.3140  r 0.833  HR MAE 1.11 bpm  amp 0.83 | lr 6.5e-04 | 3.4 min
+Epoch 019/40 | train 0.1491 | val MSE 0.3103  r 0.835  HR MAE 0.86 bpm  amp 0.85 | lr 6.1e-04 | 3.4 min
+Epoch 020/40 | train 0.1454 | val MSE 0.2976  r 0.844  HR MAE 0.90 bpm  amp 0.86 | lr 5.7e-04 | 3.5 min
+Epoch 021/40 | train 0.1447 | val MSE 0.3457  r 0.811  HR MAE 0.81 bpm  amp 0.83 | lr 5.3e-04 | 3.5 min
+Epoch 022/40 | train 0.1482 | val MSE 0.3802  r 0.787  HR MAE 0.90 bpm  amp 0.79 | lr 4.9e-04 | 3.5 min
+Epoch 023/40 | train 0.1422 | val MSE 0.3517  r 0.808  HR MAE 0.90 bpm  amp 0.81 | lr 4.5e-04 | 3.5 min
+Epoch 024/40 | train 0.1391 | val MSE 0.3254  r 0.825  HR MAE 0.88 bpm  amp 0.81 | lr 4.1e-04 | 3.4 min
+Epoch 025/40 | train 0.1386 | val MSE 0.3018  r 0.844  HR MAE 0.94 bpm  amp 0.86 | lr 3.7e-04 | 3.5 min
+Epoch 026/40 | train 0.1374 | val MSE 0.3085  r 0.839  HR MAE 0.98 bpm  amp 0.86 | lr 3.3e-04 | 3.5 min
+Epoch 027/40 | train 0.1321 | val MSE 0.2767  r 0.856  HR MAE 0.84 bpm  amp 0.84 | lr 2.9e-04 | 3.5 min
+
+Early stopping: no val_hr_mae improvement for 15 epochs.
+
+Best val_hr_mae: 0.6894  ->  D:\projects\RPPG\results\v3_pearson\best.pth
+exit=0
