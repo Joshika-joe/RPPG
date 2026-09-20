@@ -127,7 +127,11 @@ v3_pearson: one test window in 90 is off by more than 5 bpm (max 7.3, subject12'
 opening), every subject has mean r >= 0.70, and it reached v3_newpipe's final val r after 4 epochs (2 min each). Early-stopped
 at epoch 27, best epoch 12. Note the cosine schedule had not finished (lr 2.9e-4 at stop) and
 val r was still rising (0.856 at epoch 27 vs 0.853 at the selected epoch 12) - HR MAE is a
-noisier selection criterion than Pearson r; a run selected on val r may do slightly better.
+noisier selection criterion than Pearson r. A rerun selected on val r with the full cosine
+schedule (`results/v3_pearson_selr`, best epoch by val r = 0.856) ties on windowed test
+metrics (r 0.819, HR MAE 1.06 bpm) and is slightly worse on 10-s continuous segments
+(HR MAE 0.57 vs 0.37 bpm), so v3_pearson remains the reference checkpoint. Two runs of the
+same recipe landing at r 0.81-0.82 on test shows the result is not a lucky epoch.
 
 v2_newpipe early-stopped at epoch 26 (best 18), ~8.5–14 min/epoch on a 12-core laptop CPU.
 v3_newpipe ran all 40 epochs (best 33) at 3.3 min/epoch with val loss still falling - it is
