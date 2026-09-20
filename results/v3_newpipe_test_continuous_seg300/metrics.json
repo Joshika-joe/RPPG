@@ -1,0 +1,94 @@
+{
+  "run": {
+    "checkpoint": "results\\v3_newpipe\\best.pth",
+    "model": "v3",
+    "normalize": "temporal",
+    "split": "test_continuous",
+    "stride": 30,
+    "bandpass": false,
+    "continuous": true,
+    "segment_frames": 300,
+    "params": 167562
+  },
+  "summary": {
+    "n_windows": 42,
+    "mse": 0.475995610109779,
+    "pearson_mean": 0.7620021937722695,
+    "pearson_median": 0.7968572435363563,
+    "pearson_frac_gt_0.5": 0.9523809523809523,
+    "hr_mae_bpm": 0.5549085083058747,
+    "hr_rmse_bpm": 1.640798414696169,
+    "hr_within_5bpm_frac": 0.9761904761904762,
+    "snr_db_mean": 2.756389216531149,
+    "amplitude_ratio_mean": 0.9999999903870053,
+    "bandpass": false,
+    "hr_mae_vs_oximeter_bpm": 19.900525406519634,
+    "hr_gt_fft_vs_oximeter_mae_bpm": 19.66011454306873,
+    "whole_recording_r_mean": 0.7538978202002389
+  },
+  "per_subject": {
+    "subject11": {
+      "n_windows": 64,
+      "mse": 0.4651763130206256,
+      "pearson_mean": 0.7674118434420235,
+      "hr_mae_bpm": 0.24739203489542425,
+      "snr_db_mean": 2.4738398938401462,
+      "amplitude_ratio_mean": 0.9999999762998041,
+      "whole_recording_r": 0.7655785083770752
+    },
+    "subject12": {
+      "n_windows": 63,
+      "mse": 0.5249590161808227,
+      "pearson_mean": 0.7375205000979919,
+      "hr_mae_bpm": 1.9377067295844153,
+      "snr_db_mean": 3.2219010567378787,
+      "amplitude_ratio_mean": 0.9999999934030773,
+      "whole_recording_r": 0.7511724233627319
+    },
+    "subject18": {
+      "n_windows": 64,
+      "mse": 0.456353553205233,
+      "pearson_mean": 0.7718232227431553,
+      "hr_mae_bpm": 0.24780837451610202,
+      "snr_db_mean": 5.4285823206722235,
+      "amplitude_ratio_mean": 0.9999999444852272,
+      "whole_recording_r": 0.7586943507194519
+    },
+    "subject20": {
+      "n_windows": 64,
+      "mse": 0.4869082317525603,
+      "pearson_mean": 0.7565458869256507,
+      "hr_mae_bpm": 0.24574728273056223,
+      "snr_db_mean": 2.0297670060594624,
+      "amplitude_ratio_mean": 1.0000000201567514,
+      "whole_recording_r": 0.728939950466156
+    },
+    "subject23": {
+      "n_windows": 62,
+      "mse": 0.29770353969800983,
+      "pearson_mean": 0.8511482268207944,
+      "hr_mae_bpm": 0.2411155592819417,
+      "snr_db_mean": 3.384496215308044,
+      "amplitude_ratio_mean": 1.0000000174889019,
+      "whole_recording_r": 0.8276826739311218
+    },
+    "subject3": {
+      "n_windows": 57,
+      "mse": 0.26715319840455637,
+      "pearson_mean": 0.866423401789797,
+      "hr_mae_bpm": 0.24618818279693264,
+      "snr_db_mean": 1.2086358939541173,
+      "amplitude_ratio_mean": 0.9999999760424582,
+      "whole_recording_r": 0.8604321479797363
+    },
+    "subject48": {
+      "n_windows": 62,
+      "mse": 0.8337154185066445,
+      "pearson_mean": 0.5831422745864737,
+      "hr_mae_bpm": 0.7184013943357451,
+      "snr_db_mean": 1.547502129146172,
+      "amplitude_ratio_mean": 1.0000000048328168,
+      "whole_recording_r": 0.5847846865653992
+    }
+  }
+}

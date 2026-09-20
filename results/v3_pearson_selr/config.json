@@ -1,0 +1,23 @@
+{
+  "model": "v3",
+  "run": "v3_pearson_selr",
+  "loss": "pearson",
+  "optimizer": "adamw",
+  "scheduler": "cosine",
+  "warmup_epochs": 3,
+  "grad_clip": 1.0,
+  "epochs": 40,
+  "patience": 40,
+  "batch_size": 4,
+  "lr": 0.001,
+  "wd": 0.01,
+  "stride": 30,
+  "windows_per_epoch": 400,
+  "normalize": "temporal",
+  "no_augment": false,
+  "select_on": "pearson",
+  "seed": 42,
+  "num_workers": 0,
+  "threads": 8,
+  "resume": false
+}

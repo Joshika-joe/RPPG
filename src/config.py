@@ -43,6 +43,8 @@ FACE_DETECT_FRAMES = 30  # frames used to estimate one fixed face box per subjec
 WINDOW_FRAMES = 150  # ~5 s at ~30 fps
 TRAIN_STRIDE = 30  # overlapping windows for training (1 s hop)
 EVAL_STRIDE = 150  # non-overlapping windows for val/test
+CONTINUOUS_STRIDE = 30  # sliding stride for overlap-add inference
+SEGMENT_FRAMES = 300  # ~10 s segments for continuous-inference metrics
 EPSILON = 1e-8  # target normalization
 
 # Input normalization mode:

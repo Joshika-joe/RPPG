@@ -15,6 +15,7 @@ src/
   metrics.py        Pearson r, HR MAE / RMSE, SNR, band-pass, per-subject tables
   train.py          training loop (seeded, resumable, per-epoch val metrics, history)
   evaluate.py       metrics.json + per-window CSV + waveform / HR scatter / Bland-Altman plots
+  inference.py      continuous overlap-add inference over whole recordings
 splits/             train_subjects.txt, val_subjects.txt, test_subjects.txt
 checkpoints/
   subjects/<id>/    roi.npy (uint8, T x 64 x 64 x 3, BGR), bvp.npy, hr.npy, ts.npy, meta.json
@@ -71,7 +72,8 @@ waveform shape rather than for hedging toward zero amplitude.
 ## 3. Evaluate
 
 ```bash
-python -m src.evaluate --run results/v2_newpipe --split test
+python -m src.evaluate --run results/v3_pearson --split test
+python -m src.evaluate --run results/v3_pearson --split test --continuous --stride 30 --segment-frames 300
 python -m src.evaluate --checkpoint best_rppg_model_v2.pth --model v2 --normalize raw --split val
 ```
 
@@ -137,6 +139,35 @@ cheeks, avoiding hair, eyes, background and beard, with no supervision on locati
 
 Remaining test errors are concentrated in subject12 (irregular reference waveform in its
 first 10 s) and subject48 (lowest SNR video).
+
+### Continuous inference (overlap-add)
+
+`--continuous --stride 30`: the model slides over each recording with a 1-s hop, every
+window's prediction is standardized and blended with a Hann weight into one continuous BVP
+per subject (`src/inference.py`), and metrics are computed on non-overlapping 300-frame
+(~10 s) segments — the usual UBFC protocol. Whole-recording r is the Pearson correlation over
+the entire ~60 s recording (both signals band-passed to 0.7–4 Hz).
+
+| run | Pearson r (10-s segments) | HR MAE | HR RMSE | within 5 bpm | SNR | whole-recording r |
+|---|---|---|---|---|---|---|
+| legacy v2 | 0.648 | 2.39 bpm | 9.42 | 92.9 % | 1.30 dB | 0.642 |
+| v2_newpipe | 0.759 | 0.68 bpm | 1.99 | 97.6 % | 2.21 dB | 0.750 |
+| v3_newpipe | 0.762 | 0.55 bpm | 1.64 | 97.6 % | 2.76 dB | 0.754 |
+| **v3_pearson** | **0.813** | **0.37 bpm** | **0.54** | **100.0 %** | **3.72 dB** | **0.801** |
+
+Same v3_pearson checkpoint, windowed vs continuous on the test split:
+
+| protocol | Pearson r | HR MAE | HR RMSE | within 5 bpm |
+|---|---|---|---|---|
+| isolated 5-s windows (stride 150) | 0.811 | 1.07 bpm | 1.62 | 98.9 % |
+| overlap-add, 5-s segments | 0.826 | 0.80 bpm | 1.35 | 98.9 % |
+| overlap-add, 10-s segments | 0.813 | 0.37 bpm | 0.54 | 100.0 % |
+
+Overlap-add alone lowers 5-s HR MAE from 1.07 to 0.80 bpm (window-edge effects
+average out); 10-s segments bring it to 0.37 bpm with every segment within 5 bpm.
+`--bandpass` (0.7–4 Hz on the prediction) changes HR MAE by < 0.05 bpm and is off by default.
+`results/v3_pearson_test_continuous_seg300/continuous.png` shows the first 20 s of every test
+subject.
 
 ## Collaborator workflow (training on another machine)
 

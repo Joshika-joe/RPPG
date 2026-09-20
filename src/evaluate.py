@@ -10,6 +10,10 @@ Evaluate a trained model on a split and write metrics + diagnostic plots.
     # Sanity check: legacy pre-cut .npy validation windows from the original pipeline
     python -m src.evaluate --checkpoint best_rppg_model_v2.pth --model v2 --legacy-val
 
+    # Continuous inference: slide with --stride, overlap-add into one BVP per subject,
+    # score on non-overlapping --segment-frames segments (adds continuous.png)
+    python -m src.evaluate --run results/v3_pearson --split test --continuous --stride 30 --segment-frames 300 --bandpass
+
 Outputs in --out (default results/<run-or-checkpoint>_<split>/):
     metrics.json      summary + per-subject + per-window metrics
     per_window.csv
@@ -36,7 +40,8 @@ from torch.utils.data import DataLoader
 
 from . import config
 from .dataset import LegacyValDataset, make_eval_loader
-from .metrics import compute_metrics, format_summary
+from .inference import predict_continuous, segment_signals
+from .metrics import bandpass_filter, compute_metrics, format_summary, pearson_per_window
 from .models import MODEL_NAMES, build_model, count_params, load_weights, run_model
 
 
@@ -179,6 +184,61 @@ def plot_attention(info, path: str, n_subjects: int = 4) -> None:
     plt.close(fig)
 
 
+def plot_continuous(signals: Dict, path: str, seconds: float = 20.0, bandpass: bool = False) -> None:
+    """One row per subject: continuous prediction vs ground truth for the first `seconds`."""
+    names = list(signals)
+    fig, axes = plt.subplots(len(names), 1, figsize=(13, 2.6 * len(names)), squeeze=False)
+    for ax, name in zip(axes[:, 0], names):
+        sig = signals[name]
+        fps = sig["fps"]
+        n = min(len(sig["pred"]), int(seconds * fps))
+        pred, gt = sig["pred"][:n], sig["gt"][:n]
+        if bandpass:
+            pred, gt = bandpass_filter(pred, fps), bandpass_filter(gt, fps)
+        t = np.arange(n) / fps
+        ax.plot(t, (gt - gt.mean()) / (gt.std() + 1e-8), linewidth=1.2, label="Ground truth BVP")
+        ax.plot(t, (pred - pred.mean()) / (pred.std() + 1e-8), "--", linewidth=1.2, label="Prediction (overlap-add)")
+        ax.set_title(f"{name}  (whole-recording r = {sig['subject_r']:.2f}, {sig['n_windows']} windows)")
+        ax.set_xlabel("seconds")
+        ax.grid(True, alpha=0.4)
+        ax.legend(loc="upper right", fontsize=8)
+    fig.tight_layout()
+    fig.savefig(path, dpi=120)
+    plt.close(fig)
+
+
+def evaluate_continuous(
+    model: nn.Module,
+    subjects,
+    device: torch.device,
+    stride: int,
+    normalize: str,
+    segment_frames: int,
+    bandpass: bool,
+    batch_size: int,
+):
+    """Overlap-add inference over whole recordings, then segment-level metrics."""
+    signals = predict_continuous(model, subjects, stride, normalize, device, batch_size)
+    for sig in signals.values():  # whole-recording correlation (band-passed on both sides)
+        pred, gt = sig["pred"], sig["gt"]
+        if bandpass:
+            pred, gt = bandpass_filter(pred, sig["fps"]), bandpass_filter(gt, sig["fps"])
+        sig["subject_r"] = float(pearson_per_window(pred[None], gt[None])[0])
+    preds, targets, fps, subj, hr_ref = segment_signals(signals, segment_frames)
+    metrics = compute_metrics(preds, targets, fps=fps, hr_ref=hr_ref, subjects=subj, bandpass=bandpass)
+    for name, sig in signals.items():
+        metrics["per_subject"][name]["whole_recording_r"] = sig["subject_r"]
+        metrics["per_subject"][name]["n_windows"] = sig["n_windows"]
+    metrics["summary"]["whole_recording_r_mean"] = float(np.mean([s["subject_r"] for s in signals.values()]))
+    info = {
+        "subject": subj,
+        "start": [i * segment_frames for i in range(len(subj))],
+        "fps": fps.tolist(),
+        "hr_ref": hr_ref.tolist(),
+    }
+    return metrics, preds, targets, info, signals
+
+
 # ==============================================================================
 # OUTPUT
 # ==============================================================================
@@ -209,14 +269,20 @@ def write_outputs(out_dir: str, metrics: Dict, preds, targets, info, extra: Dict
 def print_report(title: str, metrics: Dict) -> None:
     print(f"\n=== {title} ===")
     print(format_summary(metrics["summary"]))
+    if "whole_recording_r_mean" in metrics["summary"]:
+        print(f"  {'whole-recording r':<20} {metrics['summary']['whole_recording_r_mean']:.3f}")
     if "per_subject" in metrics:
+        has_wr = any("whole_recording_r" in m for m in metrics["per_subject"].values())
         print("\n  per subject:")
-        print(f"  {'subject':<10} {'n':>3} {'r':>6} {'HR MAE':>7} {'SNR':>6} {'amp':>5}")
+        print(f"  {'subject':<10} {'n':>3} {'r':>6} {'HR MAE':>7} {'SNR':>6} {'amp':>5}" + ("  rec-r" if has_wr else ""))
         for s, m in metrics["per_subject"].items():
-            print(
+            line = (
                 f"  {s:<10} {m['n_windows']:>3} {m['pearson_mean']:>6.3f} "
                 f"{m['hr_mae_bpm']:>7.2f} {m['snr_db_mean']:>6.2f} {m['amplitude_ratio_mean']:>5.2f}"
             )
+            if "whole_recording_r" in m:
+                line += f"  {m['whole_recording_r']:>5.2f}"
+            print(line)
 
 
 # ==============================================================================
@@ -248,6 +314,8 @@ def main() -> None:
     p.add_argument("--batch-size", type=int, default=config.BATCH_SIZE)
     p.add_argument("--bandpass", action="store_true", help="band-pass predictions before metrics")
     p.add_argument("--legacy-val", action="store_true", help="use the original pipeline's rppg_X_val.npy")
+    p.add_argument("--continuous", action="store_true", help="overlap-add sliding inference per subject (uses --stride)")
+    p.add_argument("--segment-frames", type=int, default=config.SEGMENT_FRAMES, help="segment length for continuous metrics")
     p.add_argument("--out", help="output directory (default results/<label>_<split>)")
     args = p.parse_args()
 
@@ -259,20 +327,30 @@ def main() -> None:
     print(f"Model {model_name} ({count_params(model):,} params) <- {ckpt}")
     print(f"Device: {device}")
 
-    if args.legacy_val:
+    signals = None
+    t0 = time.time()
+    if args.continuous:
+        subjects = config.SPLITS[args.split]
+        split_label = f"{args.split}_continuous"
+        print(f"Split {args.split}: {len(subjects)} subjects, continuous overlap-add "
+              f"(stride {args.stride}, segments of {args.segment_frames} frames, normalize={normalize})")
+        metrics, preds, targets, info, signals = evaluate_continuous(
+            model, subjects, device, stride=args.stride, normalize=normalize,
+            segment_frames=args.segment_frames, bandpass=args.bandpass, batch_size=args.batch_size,
+        )
+    elif args.legacy_val:
         ds = LegacyValDataset()
         loader = DataLoader(ds, batch_size=args.batch_size, shuffle=False)
         split_label = "legacyval"
         print(f"Legacy validation windows: {len(ds)} (raw pixels, fps assumed 30)")
+        metrics, preds, targets, info = evaluate(model, loader, device, bandpass=args.bandpass)
     else:
         subjects = config.SPLITS[args.split]
         loader = make_eval_loader(subjects, batch_size=args.batch_size, stride=args.stride, normalize=normalize)
         split_label = args.split
         print(f"Split {args.split}: {len(subjects)} subjects, {len(loader.dataset)} windows "
               f"(stride {args.stride}, normalize={normalize})")
-
-    t0 = time.time()
-    metrics, preds, targets, info = evaluate(model, loader, device, bandpass=args.bandpass)
+        metrics, preds, targets, info = evaluate(model, loader, device, bandpass=args.bandpass)
     print(f"Inference: {time.time() - t0:.1f}s")
 
     print_report(f"{label} / {split_label}", metrics)
@@ -285,9 +363,13 @@ def main() -> None:
         "split": split_label,
         "stride": args.stride,
         "bandpass": args.bandpass,
+        "continuous": args.continuous,
+        "segment_frames": args.segment_frames if args.continuous else None,
         "params": count_params(model),
     }
     write_outputs(out_dir, metrics, preds, targets, info, extra)
+    if signals is not None:
+        plot_continuous(signals, os.path.join(out_dir, "continuous.png"), bandpass=args.bandpass)
     print(f"\nWrote metrics + plots to {os.path.relpath(out_dir, config.PROJECT_ROOT)}")
 
 

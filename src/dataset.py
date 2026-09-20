@@ -95,7 +95,10 @@ class WindowDataset(Dataset):
         augment: bool = False,
         subject_root: str = config.SUBJECT_DIR,
         seed: int = config.RANDOM_SEED,
+        cover_tail: bool = False,
     ):
+        """cover_tail: also add a final window ending on the last frame when the stride
+        would leave the tail uncovered (used for continuous overlap-add inference)."""
         self.window_frames = window_frames
         self.stride = stride
         self.normalize = normalize
@@ -115,7 +118,10 @@ class WindowDataset(Dataset):
             si = len(self.stores)
             self.subjects.append(name)
             self.stores.append(store)
-            for start in range(0, n - window_frames + 1, stride):
+            starts = list(range(0, n - window_frames + 1, stride))
+            if cover_tail and starts[-1] != n - window_frames:
+                starts.append(n - window_frames)
+            for start in starts:
                 self.index.append((si, start))
 
     def __len__(self) -> int:
