@@ -102,6 +102,9 @@ def snr_db(
     """
     de Haan SNR: power within ±tol_hz of the reference HR frequency and its first harmonic,
     over the remaining power inside `band`.
+
+    Spectral leakage of the rectangular window caps this at ~6 dB for a perfect 5-s sine,
+    so treat it as a relative score between models, not an absolute quality.
     """
     if not np.isfinite(hr_bpm):
         return float("nan")
