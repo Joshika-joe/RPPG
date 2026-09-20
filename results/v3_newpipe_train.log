@@ -1,0 +1,54 @@
+
+=== TRAINING ===
+  run            D:\projects\RPPG\results\v3_newpipe
+  model          v3 (167,562 params)
+  device         cpu  (threads 8)
+  train windows  1754 total (stride 30), 400 per epoch
+  val windows    71 (stride 150)
+  normalize      temporal   augment True
+  loss mse  lr 0.0001  wd 0.0001  batch 4
+  epochs 40  patience 8  select on val_mse
+
+Epoch 001/40 | train 1.9686 | val MSE 0.9108  r 0.489  HR MAE 6.28 bpm  amp 0.52 | 3.5 min  * best
+Epoch 002/40 | train 0.8096 | val MSE 0.6286  r 0.651  HR MAE 1.51 bpm  amp 0.63 | 3.4 min  * best
+Epoch 003/40 | train 0.6776 | val MSE 0.6013  r 0.691  HR MAE 1.32 bpm  amp 0.64 | 3.3 min  * best
+Epoch 004/40 | train 0.6066 | val MSE 0.5351  r 0.756  HR MAE 1.19 bpm  amp 0.76 | 3.3 min  * best
+Epoch 005/40 | train 0.5720 | val MSE 0.5676  r 0.726  HR MAE 1.34 bpm  amp 0.67 | 3.3 min
+Epoch 006/40 | train 0.5225 | val MSE 0.5214  r 0.771  HR MAE 1.13 bpm  amp 0.77 | 3.3 min  * best
+Epoch 007/40 | train 0.4960 | val MSE 0.5115  r 0.772  HR MAE 1.23 bpm  amp 0.70 | 3.3 min  * best
+Epoch 008/40 | train 0.4886 | val MSE 0.5033  r 0.772  HR MAE 1.00 bpm  amp 0.77 | 3.2 min  * best
+Epoch 009/40 | train 0.4649 | val MSE 0.5065  r 0.773  HR MAE 0.98 bpm  amp 0.78 | 3.2 min
+Epoch 010/40 | train 0.4590 | val MSE 0.4758  r 0.786  HR MAE 0.98 bpm  amp 0.81 | 3.3 min  * best
+Epoch 011/40 | train 0.4388 | val MSE 0.4493  r 0.792  HR MAE 1.11 bpm  amp 0.77 | 3.3 min  * best
+Epoch 012/40 | train 0.4246 | val MSE 0.4275  r 0.822  HR MAE 1.00 bpm  amp 0.87 | 3.3 min  * best
+Epoch 013/40 | train 0.4020 | val MSE 0.4198  r 0.814  HR MAE 1.07 bpm  amp 0.84 | 3.3 min  * best
+Epoch 014/40 | train 0.3888 | val MSE 0.4170  r 0.801  HR MAE 1.04 bpm  amp 0.75 | 3.3 min  * best
+Epoch 015/40 | train 0.3840 | val MSE 0.4136  r 0.801  HR MAE 0.94 bpm  amp 0.76 | 3.3 min  * best
+Epoch 016/40 | train 0.3801 | val MSE 0.4036  r 0.805  HR MAE 0.98 bpm  amp 0.77 | 3.3 min  * best
+Epoch 017/40 | train 0.3776 | val MSE 0.3967  r 0.818  HR MAE 0.90 bpm  amp 0.85 | 3.3 min  * best
+Epoch 018/40 | train 0.3702 | val MSE 0.4084  r 0.800  HR MAE 1.00 bpm  amp 0.84 | 3.3 min
+Epoch 019/40 | train 0.3480 | val MSE 0.3683  r 0.830  HR MAE 0.92 bpm  amp 0.87 | 3.3 min  * best
+Epoch 020/40 | train 0.3364 | val MSE 0.4106  r 0.795  HR MAE 0.90 bpm  amp 0.78 | 3.3 min
+Epoch 021/40 | train 0.3330 | val MSE 0.3665  r 0.813  HR MAE 0.88 bpm  amp 0.79 | 3.3 min  * best
+Epoch 022/40 | train 0.3389 | val MSE 0.3915  r 0.795  HR MAE 1.04 bpm  amp 0.79 | 3.3 min
+Epoch 023/40 | train 0.3362 | val MSE 0.3611  r 0.831  HR MAE 0.90 bpm  amp 0.91 | 3.3 min  * best
+Epoch 024/40 | train 0.3194 | val MSE 0.3498  r 0.827  HR MAE 0.94 bpm  amp 0.86 | 3.3 min  * best
+Epoch 025/40 | train 0.3166 | val MSE 0.3822  r 0.799  HR MAE 0.96 bpm  amp 0.81 | 3.3 min
+Epoch 026/40 | train 0.3037 | val MSE 0.3862  r 0.792  HR MAE 1.02 bpm  amp 0.78 | 3.3 min
+Epoch 027/40 | train 0.2956 | val MSE 0.3517  r 0.819  HR MAE 1.07 bpm  amp 0.86 | 3.3 min
+Epoch 028/40 | train 0.3099 | val MSE 0.3496  r 0.824  HR MAE 0.90 bpm  amp 0.90 | 3.3 min  * best
+Epoch 029/40 | train 0.2913 | val MSE 0.3549  r 0.813  HR MAE 1.04 bpm  amp 0.83 | 3.3 min
+Epoch 030/40 | train 0.2877 | val MSE 0.4001  r 0.781  HR MAE 1.19 bpm  amp 0.82 | 3.3 min
+Epoch 031/40 | train 0.3009 | val MSE 0.3438  r 0.820  HR MAE 1.00 bpm  amp 0.84 | 3.3 min  * best
+Epoch 032/40 | train 0.2655 | val MSE 0.3558  r 0.811  HR MAE 0.92 bpm  amp 0.81 | 3.3 min
+Epoch 033/40 | train 0.2788 | val MSE 0.3381  r 0.824  HR MAE 0.98 bpm  amp 0.83 | 3.3 min  * best
+Epoch 034/40 | train 0.2872 | val MSE 0.3581  r 0.809  HR MAE 0.88 bpm  amp 0.81 | 3.3 min
+Epoch 035/40 | train 0.2708 | val MSE 0.3410  r 0.822  HR MAE 0.88 bpm  amp 0.84 | 3.3 min
+Epoch 036/40 | train 0.2542 | val MSE 0.3409  r 0.826  HR MAE 0.81 bpm  amp 0.87 | 3.3 min
+Epoch 037/40 | train 0.2703 | val MSE 0.4738  r 0.727  HR MAE 1.00 bpm  amp 0.76 | 3.3 min
+Epoch 038/40 | train 0.2607 | val MSE 0.3806  r 0.792  HR MAE 0.94 bpm  amp 0.82 | 3.3 min
+Epoch 039/40 | train 0.2535 | val MSE 0.3385  r 0.820  HR MAE 0.94 bpm  amp 0.84 | 3.3 min
+Epoch 040/40 | train 0.2500 | val MSE 0.4180  r 0.768  HR MAE 1.04 bpm  amp 0.84 | 3.3 min
+
+Best val_mse: 0.3381  ->  D:\projects\RPPG\results\v3_newpipe\best.pth
+exit=0

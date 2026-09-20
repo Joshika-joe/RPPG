@@ -28,7 +28,7 @@ import torch.nn as nn
 from . import config
 from .dataset import make_eval_loader, make_train_loader
 from .evaluate import evaluate
-from .models import build_model, count_params
+from .models import MODEL_NAMES, build_model, count_params, run_model
 
 # Which validation metric picks the best epoch, and whether lower is better.
 SELECT_CRITERIA = {
@@ -135,10 +135,10 @@ def train(args) -> Dict:
         model.train()
         running = 0.0
         n_batches = 0
-        for x, y, _ in train_loader:
-            x, y = x.to(device), y.to(device)
+        for x, y, meta in train_loader:
+            y = y.to(device)
             optimizer.zero_grad(set_to_none=True)
-            loss = criterion(model(x), y)
+            loss = criterion(run_model(model, x, meta, device), y)
             loss.backward()
             optimizer.step()
             running += loss.item()
@@ -199,7 +199,7 @@ def train(args) -> Dict:
 
 def main() -> None:
     p = argparse.ArgumentParser(description="Train an rPPG model")
-    p.add_argument("--model", default="v2", choices=["v2"])
+    p.add_argument("--model", default="v3", choices=MODEL_NAMES)
     p.add_argument("--run", required=True, help="run name -> results/<run>/")
     p.add_argument("--loss", default="mse", choices=["mse"])
     p.add_argument("--epochs", type=int, default=config.EPOCHS)

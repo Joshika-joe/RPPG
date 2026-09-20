@@ -37,7 +37,7 @@ from torch.utils.data import DataLoader
 from . import config
 from .dataset import LegacyValDataset, make_eval_loader
 from .metrics import compute_metrics, format_summary
-from .models import build_model, count_params, load_weights
+from .models import MODEL_NAMES, build_model, count_params, load_weights, run_model
 
 
 # ==============================================================================
@@ -47,18 +47,28 @@ from .models import build_model, count_params, load_weights
 def predict(
     model: nn.Module, loader: DataLoader, device: torch.device
 ) -> Tuple[np.ndarray, np.ndarray, Dict[str, List]]:
-    """Runs the model over a loader. Returns (preds, targets, info) with info columns as lists."""
+    """
+    Runs the model over a loader. Returns (preds, targets, info) with info columns as lists.
+    For models exposing `last_attention`, info also gets per-window "attention" (h, w) maps
+    and "mean_frame" (3, H, W) arrays.
+    """
     model.eval()
     preds, targets = [], []
     info: Dict[str, List] = {"subject": [], "start": [], "fps": [], "hr_ref": []}
+    has_attention = hasattr(model, "last_attention")
+    if has_attention:
+        info["attention"], info["mean_frame"] = [], []
     for x, y, meta in loader:
-        out = model(x.to(device)).cpu().numpy()
+        out = run_model(model, x, meta, device).cpu().numpy()
         preds.append(out)
         targets.append(y.numpy())
         info["subject"].extend(list(meta["subject"]))
         info["start"].extend(meta["start"].tolist())
         info["fps"].extend(meta["fps"].tolist())
         info["hr_ref"].extend(meta["hr_ref"].tolist())
+        if has_attention and model.last_attention is not None:
+            info["attention"].extend(model.last_attention[:, 0].cpu().numpy())
+            info["mean_frame"].extend(meta["mean_frame"].numpy())
     return np.concatenate(preds), np.concatenate(targets), info
 
 
@@ -148,6 +158,27 @@ def plot_bland_altman(metrics, path: str) -> None:
     plt.close(fig)
 
 
+def plot_attention(info, path: str, n_subjects: int = 4) -> None:
+    """Per-subject mean attention mask (upsampled) over the subject's mean face."""
+    subjects = sorted(set(info["subject"]))[:n_subjects]
+    fig, axes = plt.subplots(2, len(subjects), figsize=(3.2 * len(subjects), 6.4), squeeze=False)
+    for col, s in enumerate(subjects):
+        idx = [i for i, name in enumerate(info["subject"]) if name == s]
+        face = np.mean([info["mean_frame"][i] for i in idx], axis=0)[::-1].transpose(1, 2, 0)  # BGR -> RGB
+        att = np.mean([info["attention"][i] for i in idx], axis=0)
+        axes[0, col].imshow(np.clip(face, 0, 1))
+        axes[0, col].set_title(f"{s}: mean face")
+        axes[1, col].imshow(np.clip(face, 0, 1))
+        h, w = face.shape[:2]
+        axes[1, col].imshow(att, cmap="jet", alpha=0.45, extent=(0, w, h, 0), interpolation="bilinear")
+        axes[1, col].set_title(f"attention (min {att.min():.2f}, max {att.max():.2f})")
+        for ax in axes[:, col]:
+            ax.axis("off")
+    fig.tight_layout()
+    fig.savefig(path, dpi=130)
+    plt.close(fig)
+
+
 # ==============================================================================
 # OUTPUT
 # ==============================================================================
@@ -171,6 +202,8 @@ def write_outputs(out_dir: str, metrics: Dict, preds, targets, info, extra: Dict
     plot_waveforms(preds, targets, metrics, info, os.path.join(out_dir, "waveforms.png"))
     plot_hr_scatter(metrics, os.path.join(out_dir, "hr_scatter.png"))
     plot_bland_altman(metrics, os.path.join(out_dir, "bland_altman.png"))
+    if info.get("attention"):
+        plot_attention(info, os.path.join(out_dir, "attention.png"))
 
 
 def print_report(title: str, metrics: Dict) -> None:
@@ -208,7 +241,7 @@ def main() -> None:
     p = argparse.ArgumentParser(description="Evaluate an rPPG model")
     p.add_argument("--run", help="run directory from src.train (uses config.json + best.pth)")
     p.add_argument("--checkpoint", help="explicit weights file")
-    p.add_argument("--model", choices=["v2"], help="model name (with --checkpoint)")
+    p.add_argument("--model", choices=MODEL_NAMES, help="model name (with --checkpoint)")
     p.add_argument("--normalize", default="raw", choices=["raw", "temporal"], help="input normalization (with --checkpoint)")
     p.add_argument("--split", default="val", choices=["train", "val", "test"])
     p.add_argument("--stride", type=int, default=config.EVAL_STRIDE)

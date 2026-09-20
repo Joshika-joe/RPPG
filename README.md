@@ -11,7 +11,7 @@ src/
   config.py         paths, windowing, normalization, augmentation, training defaults
   preprocessing.py  video -> per-subject 64x64 face-ROI sequence (+ BVP / HR / timestamps)
   dataset.py        WindowDataset: on-the-fly windowing, normalization, augmentation
-  models.py         model registry (v2: 3D-CNN)
+  models.py         model registry (v2: 3D-CNN, v3: 2D+1D with appearance attention)
   metrics.py        Pearson r, HR MAE / RMSE, SNR, band-pass, per-subject tables
   train.py          training loop (seeded, resumable, per-epoch val metrics, history)
   evaluate.py       metrics.json + per-window CSV + waveform / HR scatter / Bland-Altman plots
@@ -76,6 +76,18 @@ The HR reference is the FFT of the ground-truth BVP. UBFC's oximeter HR line (li
 `ground_truth.txt`) drops to 1–4 bpm for subjects 11, 18 and 20, so it is reported only as a
 secondary number (`hr_mae_vs_oximeter_bpm`).
 
+## Models
+
+**v2** - 3D-CNN (507K params): four Conv3d blocks, spatial global average pool, 1D
+temporal conv head.
+
+**v3** - 2D+1D (168K params): a shared 2D encoder runs on every frame (64 -> 8x8 feature
+map); a small appearance branch turns the window's *mean frame* into an 8x8 spatial
+attention mask (temporal normalization removes appearance from the frames themselves, so
+"where is the skin" has to come from somewhere else); attention-weighted pooling gives a
+(C, T) sequence; five dilated residual 1D blocks (receptive field 125 frames) and a 1x1 head
+produce the BVP. ~4.7x cheaper per training step than v2 on CPU.
+
 ## Input normalization
 
 `temporal` (default): subtract each pixel's mean over the window, then divide by one global
@@ -91,12 +103,21 @@ peak of the ground-truth BVP with harmonic-aware peak picking (`config.HR_SUBHAR
 | run | data pipeline | loss | MSE | Pearson r | HR MAE | HR RMSE | within 5 bpm | SNR | amp. ratio |
 |---|---|---|---|---|---|---|---|---|---|
 | legacy v2 (`best_rppg_model_v2.pth`) | 362 non-overlapping windows, raw pixels | MSE | 0.671 | 0.634 | 2.45 bpm | 6.83 | 92.2 % | 0.73 dB | 0.47 |
-| **v2_newpipe** (`results/v2_newpipe/`) | stride 30 (1,754 windows), temporal norm, augmentation | MSE | **0.431** | **0.759** | **1.22 bpm** | **2.48** | **96.7 %** | **2.01 dB** | **0.73** |
+| **v2_newpipe** (`results/v2_newpipe/`) | stride 30 (1,754 windows), temporal norm, augmentation | MSE | **0.431** | **0.759** | **1.22 bpm** | **2.48** | **96.7 %** | 2.01 dB | 0.73 |
+| v3_newpipe (`results/v3_newpipe/`), 2D+1D, 168K params | same as v2_newpipe | MSE | 0.435 | 0.753 | 1.73 bpm | 5.21 | 95.6 % | **2.32 dB** | **0.77** |
 
-Same model, same loss, same optimizer and selection rule — only the data pipeline changed.
+v2_newpipe vs legacy: same model, loss, optimizer and selection rule — only the data
+pipeline changed. v3_newpipe vs v2_newpipe: same everything, only the architecture changed.
 Validation (used for early stopping, so optimistic): legacy r 0.710 / HR MAE 0.79 bpm;
-v2_newpipe r 0.817 / HR MAE 0.90 bpm. v2_newpipe early-stopped at epoch 26 (best epoch 18),
-~8.5–14 min/epoch on a 12-core laptop CPU.
+v2_newpipe r 0.817 / 0.90 bpm; v3_newpipe r 0.824 / 0.98 bpm.
+
+v2_newpipe early-stopped at epoch 26 (best 18), ~8.5–14 min/epoch on a 12-core laptop CPU.
+v3_newpipe ran all 40 epochs (best 33) at 3.3 min/epoch with val loss still falling - it is
+under-trained at lr 1e-4. Its HR MAE gap to v2 is one window (subject11 @ 1650, 46 bpm
+sub-harmonic pick); median HR error is identical (1.45 vs 1.44 bpm).
+
+`results/v3_newpipe_test/attention.png` shows the learned spatial attention: forehead and
+cheeks, avoiding hair, eyes, background and beard, with no supervision on location.
 
 Remaining test errors: subject12's first 10 s (irregular reference waveform) and one window
 of subject20 with an HR ramp inside the window. Amplitude ratio 0.73 is the residual MSE

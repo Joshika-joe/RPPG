@@ -11,7 +11,9 @@ evaluation) and cut on the fly from the memory-mapped uint8 ROI array, so:
 Each item is (x, y, info):
     x     float32 (3, T, H, W)   normalized ROI clip
     y     float32 (T,)           zero-mean / unit-variance BVP target
-    info  dict                   subject, start, fps, hr_ref (mean oximeter HR over the window)
+    info  dict                   subject, start, fps, hr_ref (mean oximeter HR over the window),
+                                 mean_frame float32 (3, H, W): the window's temporal mean in [0, 1]
+                                 (the appearance that temporal normalization removes from x)
 """
 
 from typing import Dict, List, Optional, Sequence, Tuple
@@ -134,6 +136,7 @@ class WindowDataset(Dataset):
         if self.augment:
             clip = augment_clip(clip, self.rng)
         x = np.ascontiguousarray(np.transpose(clip, (3, 0, 1, 2)))  # (C, T, H, W)
+        mean_frame = np.ascontiguousarray(x.mean(axis=1))  # (C, H, W), before normalization
         x = normalize_clip(x, self.normalize).astype(np.float32)
 
         y = normalize_target(store["bvp"][start:end])
@@ -143,6 +146,7 @@ class WindowDataset(Dataset):
             "start": int(start),
             "fps": float(store["meta"]["fps"]),
             "hr_ref": float(store["hr"][start:end].mean()),
+            "mean_frame": torch.from_numpy(mean_frame),
         }
         return torch.from_numpy(x), torch.from_numpy(y), info
 
@@ -216,5 +220,11 @@ class LegacyValDataset(Dataset):
     def __getitem__(self, i: int):
         x = torch.from_numpy(np.ascontiguousarray(self.X[i])).float()
         y = torch.from_numpy(self.y[i]).float()
-        info = {"subject": str(self.subjects[i]), "start": -1, "fps": 30.0, "hr_ref": float("nan")}
+        info = {
+            "subject": str(self.subjects[i]),
+            "start": -1,
+            "fps": 30.0,
+            "hr_ref": float("nan"),
+            "mean_frame": x.mean(dim=1),
+        }
         return x, y, info
