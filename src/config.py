@@ -75,6 +75,7 @@ LEARNING_RATE = 1e-4
 WEIGHT_DECAY = 1e-4
 EPOCHS = 50
 PATIENCE = 8
+PEARSON_MSE_WEIGHT = 0.2  # MSE weight inside the 'pearson' loss
 WINDOWS_PER_EPOCH = 400  # random subset of the overlapping windows seen per epoch (CPU budget)
 RANDOM_SEED = 42
 

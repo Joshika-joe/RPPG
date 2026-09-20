@@ -38,10 +38,60 @@ SELECT_CRITERIA = {
 }
 
 
+class NegPearsonLoss(nn.Module):
+    """1 - Pearson r per window, averaged. Scale-invariant: rewards waveform shape, not amplitude."""
+
+    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        p = pred - pred.mean(dim=1, keepdim=True)
+        t = target - target.mean(dim=1, keepdim=True)
+        r = (p * t).sum(dim=1) / (torch.sqrt((p * p).sum(dim=1) * (t * t).sum(dim=1)) + 1e-8)
+        return (1.0 - r).mean()
+
+
+class PearsonMSELoss(nn.Module):
+    """(1 - r) + mse_weight * MSE. The small MSE term keeps the output on the target's scale."""
+
+    def __init__(self, mse_weight: float = config.PEARSON_MSE_WEIGHT):
+        super().__init__()
+        self.pearson = NegPearsonLoss()
+        self.mse = nn.MSELoss()
+        self.mse_weight = mse_weight
+
+    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        return self.pearson(pred, target) + self.mse_weight * self.mse(pred, target)
+
+
 def build_loss(name: str) -> nn.Module:
     if name == "mse":
         return nn.MSELoss()
+    if name == "pearson":
+        return PearsonMSELoss()
     raise ValueError(f"Unknown loss {name!r}")
+
+
+def build_optimizer(name: str, params, lr: float, wd: float) -> torch.optim.Optimizer:
+    if name == "adam":
+        return torch.optim.Adam(params, lr=lr, weight_decay=wd)
+    if name == "adamw":
+        return torch.optim.AdamW(params, lr=lr, weight_decay=wd)
+    raise ValueError(f"Unknown optimizer {name!r}")
+
+
+def build_scheduler(name: str, optimizer, total_steps: int, warmup_steps: int, min_ratio: float = 0.02):
+    """Per-step LR multiplier: linear warmup then cosine decay to min_ratio (or constant)."""
+    if name == "none":
+        return torch.optim.lr_scheduler.LambdaLR(optimizer, lambda step: 1.0)
+    if name == "cosine":
+        import math
+
+        def lr_lambda(step: int) -> float:
+            if step < warmup_steps:
+                return (step + 1) / warmup_steps
+            progress = (step - warmup_steps) / max(1, total_steps - warmup_steps)
+            return min_ratio + (1 - min_ratio) * 0.5 * (1 + math.cos(math.pi * min(progress, 1.0)))
+
+        return torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
+    raise ValueError(f"Unknown scheduler {name!r}")
 
 
 def save_history_plot(history: Dict, path: str) -> None:
@@ -99,24 +149,32 @@ def train(args) -> Dict:
     # ---------------------------------------------------------------- model
     model = build_model(args.model).to(device)
     criterion = build_loss(args.loss)
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd)
+    optimizer = build_optimizer(args.optimizer, model.parameters(), args.lr, args.wd)
+    steps_per_epoch = len(train_loader)
+    scheduler = build_scheduler(
+        args.scheduler, optimizer, total_steps=args.epochs * steps_per_epoch,
+        warmup_steps=args.warmup_epochs * steps_per_epoch,
+    )
 
     metric_key, lower_is_better = SELECT_CRITERIA[args.select_on]
     best_score = float("inf") if lower_is_better else -float("inf")
     patience_counter = 0
     start_epoch = 1
     history: Dict[str, list] = {
-        "epoch": [], "train_loss": [], "val_mse": [], "val_pearson": [], "val_hr_mae": [], "epoch_time_s": [],
+        "epoch": [], "train_loss": [], "val_mse": [], "val_pearson": [], "val_hr_mae": [], "lr": [], "epoch_time_s": [],
     }
 
     if args.resume and os.path.exists(last_path):
         state = torch.load(last_path, map_location=device, weights_only=True)
         model.load_state_dict(state["model"])
         optimizer.load_state_dict(state["optimizer"])
+        if "scheduler" in state:
+            scheduler.load_state_dict(state["scheduler"])
         best_score = state["best_score"]
         patience_counter = state["patience_counter"]
         start_epoch = state["epoch"] + 1
         history = state["history"]
+        history.setdefault("lr", [])  # runs recorded before lr logging existed
         print(f"Resumed from epoch {state['epoch']} (best {metric_key}={best_score:.4f})")
 
     print("\n=== TRAINING ===")
@@ -126,7 +184,8 @@ def train(args) -> Dict:
     print(f"  train windows  {n_train_total} total (stride {args.stride}), {n_train_epoch} per epoch")
     print(f"  val windows    {len(val_loader.dataset)} (stride {config.EVAL_STRIDE})")
     print(f"  normalize      {args.normalize}   augment {not args.no_augment}")
-    print(f"  loss {args.loss}  lr {args.lr}  wd {args.wd}  batch {args.batch_size}")
+    print(f"  loss {args.loss}  optimizer {args.optimizer}  lr {args.lr}  wd {args.wd}  batch {args.batch_size}")
+    print(f"  scheduler {args.scheduler} (warmup {args.warmup_epochs} ep)  grad clip {args.grad_clip}")
     print(f"  epochs {args.epochs}  patience {args.patience}  select on {metric_key}\n")
 
     # ---------------------------------------------------------------- loop
@@ -140,10 +199,14 @@ def train(args) -> Dict:
             optimizer.zero_grad(set_to_none=True)
             loss = criterion(run_model(model, x, meta, device), y)
             loss.backward()
+            if args.grad_clip > 0:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
             optimizer.step()
+            scheduler.step()
             running += loss.item()
             n_batches += 1
         train_loss = running / max(n_batches, 1)
+        current_lr = optimizer.param_groups[0]["lr"]
 
         val_metrics, _, _, _ = evaluate(model, val_loader, device)
         s = val_metrics["summary"]
@@ -155,6 +218,7 @@ def train(args) -> Dict:
         history["val_mse"].append(scores["val_mse"])
         history["val_pearson"].append(scores["val_pearson"])
         history["val_hr_mae"].append(scores["val_hr_mae"])
+        history["lr"].append(current_lr)
         history["epoch_time_s"].append(epoch_time)
 
         score = scores[metric_key]
@@ -170,7 +234,7 @@ def train(args) -> Dict:
             f"Epoch {epoch:03d}/{args.epochs} | train {train_loss:.4f} | "
             f"val MSE {scores['val_mse']:.4f}  r {scores['val_pearson']:.3f}  "
             f"HR MAE {scores['val_hr_mae']:.2f} bpm  amp {s['amplitude_ratio_mean']:.2f} | "
-            f"{epoch_time / 60:.1f} min{'  * best' if improved else ''}",
+            f"lr {current_lr:.1e} | {epoch_time / 60:.1f} min{'  * best' if improved else ''}",
             flush=True,
         )
 
@@ -178,6 +242,7 @@ def train(args) -> Dict:
             {
                 "model": model.state_dict(),
                 "optimizer": optimizer.state_dict(),
+                "scheduler": scheduler.state_dict(),
                 "epoch": epoch,
                 "best_score": best_score,
                 "patience_counter": patience_counter,
@@ -201,7 +266,11 @@ def main() -> None:
     p = argparse.ArgumentParser(description="Train an rPPG model")
     p.add_argument("--model", default="v3", choices=MODEL_NAMES)
     p.add_argument("--run", required=True, help="run name -> results/<run>/")
-    p.add_argument("--loss", default="mse", choices=["mse"])
+    p.add_argument("--loss", default="mse", choices=["mse", "pearson"], help="pearson = (1-r) + %.2f*MSE" % config.PEARSON_MSE_WEIGHT)
+    p.add_argument("--optimizer", default="adam", choices=["adam", "adamw"])
+    p.add_argument("--scheduler", default="none", choices=["none", "cosine"])
+    p.add_argument("--warmup-epochs", type=int, default=0)
+    p.add_argument("--grad-clip", type=float, default=0.0, help="max grad norm (0 = off)")
     p.add_argument("--epochs", type=int, default=config.EPOCHS)
     p.add_argument("--patience", type=int, default=config.PATIENCE)
     p.add_argument("--batch-size", type=int, default=config.BATCH_SIZE)
