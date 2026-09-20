@@ -125,6 +125,33 @@ prediction, blends them with a Hann weight into one continuous BVP (`src/inferen
 scores non-overlapping `--segment-frames` segments. `--bandpass` (0.7–4 Hz on the prediction)
 changes HR MAE by < 0.05 bpm and is off by default.
 
+## Live webcam demo
+
+```bash
+python -m src.live                       # default camera, results/v3_pearson, q / ESC to quit
+python -m src.live --camera 1 --threads 4
+python -m src.live --video DATASET_2/subject3/vid.avi --no-display   # file mode, prints estimates
+```
+
+Shows the face box, the live BVP trace, **heart rate** from the last 10 s, a signal-quality
+readout, and an **experimental breathing rate**. Sit still, face the camera in steady light,
+and wait ~10 s for the HR and ~45 s for the breathing estimate.
+
+- HR: rolling 5-s windows through v3 every 0.5 s (background thread), overlap-added exactly
+  like `--continuous`, band-limited FFT peak, median of the last 5 estimates. In file mode on
+  the test subjects it tracks the reference within ~1–3 bpm throughout, including HR changes.
+- Breathing (`--resp-method chest`, default): vertical motion of the region below the face
+  (phase correlation), integrated, band-passed to 0.1–0.5 Hz. On UBFC videos it finds a sharp
+  peak with a clean 2x harmonic per subject (23–27 /min; the subjects were playing a timed
+  math game), but UBFC has no respiration labels, so this is **unvalidated** — check it by
+  counting your own breaths for 30 s. `--resp-method rsa` derives breathing from
+  beat-to-beat HR modulation of the predicted pulse instead; it agrees with the reference
+  PPG's own RSA on only 2 of 7 test subjects and is kept for comparison only.
+
+The model was trained on frontal, still, indoor subjects at ~30 fps. Head movement, talking,
+backlighting and changing light will degrade it; the quality readout (SNR of the last 10 s)
+goes amber when the estimate is doubtful.
+
 ## Models
 
 **v2** — 3D-CNN (507 K params): four Conv3d blocks, spatial global average pool, 1D temporal
@@ -156,6 +183,7 @@ src/
   inference.py      continuous overlap-add inference over whole recordings
   train.py          training loop (losses, AdamW / cosine, grad clip, seeded, resumable, history)
   evaluate.py       metrics.json + per-window CSV + plots, windowed or continuous
+  live.py           webcam demo: live HR (+ experimental breathing rate)
 tests/              pytest suite (synthetic data; no dataset or trained model required)
 splits/             train_subjects.txt, val_subjects.txt, test_subjects.txt
 checkpoints/subjects/<id>/   preprocessing cache (not tracked)
