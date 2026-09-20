@@ -121,8 +121,8 @@ v3_pearson vs v3_newpipe: same data and architecture; loss, optimizer (AdamW, wd
 Validation (used for early stopping, so optimistic): legacy r 0.710 / HR MAE 0.79 bpm;
 v2_newpipe r 0.817 / 0.90; v3_newpipe r 0.824 / 0.98; v3_pearson r 0.853 / 0.69.
 
-v3_pearson: no test window is off by more than 5 bpm (max 4.6), every subject has mean
-r >= 0.70, and it reached v3_newpipe's final val r after 4 epochs (2 min each). Early-stopped
+v3_pearson: one test window in 90 is off by more than 5 bpm (max 7.3, subject12's irregular
+opening), every subject has mean r >= 0.70, and it reached v3_newpipe's final val r after 4 epochs (2 min each). Early-stopped
 at epoch 27, best epoch 12. Note the cosine schedule had not finished (lr 2.9e-4 at stop) and
 val r was still rising (0.856 at epoch 27 vs 0.853 at the selected epoch 12) - HR MAE is a
 noisier selection criterion than Pearson r; a run selected on val r may do slightly better.
