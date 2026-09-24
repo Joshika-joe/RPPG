@@ -137,9 +137,11 @@ Shows the face box, the live BVP trace, **heart rate** from the last 10 s, a sig
 readout, and an **experimental breathing rate**. Sit still, face the camera in steady light,
 and wait ~10 s for the HR and ~45 s for the breathing estimate.
 
-- HR: rolling 5-s windows through v3 every 0.5 s (background thread), overlap-added exactly
-  like `--continuous`, band-limited FFT peak, median of the last 5 estimates. In file mode on
-  the test subjects it tracks the reference within ~1–3 bpm throughout, including HR changes.
+- HR: the last **5 seconds** of buffered face crops are resampled onto exactly 150 frames
+  (linear interpolation in time) before every model call, so the estimate does not depend on
+  the camera's frame rate; predictions are overlap-added onto a fixed 30 Hz timeline, and the
+  band-limited FFT peak over the last 10 s is median-filtered over recent estimates.
+  Estimates below `--min-quality` dB (default −3) are ignored rather than displayed.
 - Breathing (`--resp-method chest`, default): vertical motion of the region below the face
   (phase correlation), integrated, band-passed to 0.1–0.5 Hz. On UBFC videos it finds a sharp
   peak with a clean 2x harmonic per subject (23–27 /min; the subjects were playing a timed
@@ -148,9 +150,29 @@ and wait ~10 s for the HR and ~45 s for the breathing estimate.
   beat-to-beat HR modulation of the predicted pulse instead; it agrees with the reference
   PPG's own RSA on only 2 of 7 test subjects and is kept for comparison only.
 
-The model was trained on frontal, still, indoor subjects at ~30 fps. Head movement, talking,
-backlighting and changing light will degrade it; the quality readout (SNR of the last 10 s)
-goes amber when the estimate is doubtful.
+**Why the time resampling matters.** The model was trained on ~29.5 fps video; webcams in
+ordinary room light often deliver 15–20. Emulating slower capture on the test subjects
+(sampling the preprocessed ROI sequences at `k / sim_fps`) and estimating HR both ways:
+
+| emulated capture fps | 150 consecutive frames | 150 frames resampled over 5 s |
+|---|---|---|
+| 29.5 (native) | 1.58 bpm | 1.69 bpm |
+| 25 | 1.72 | 1.69 |
+| 20 | 1.94 | **1.72** |
+| 15 | **14.03** | **1.70** |
+
+Resampling costs nothing at native rate and keeps the model usable down to 15 fps, where
+feeding raw frames collapses. `--simulate-fps N` reproduces this from a video file.
+
+**Getting a usable signal.** The webcam, not the model, is the limit: on UBFC recordings the
+live pipeline reports +3 to +7 dB quality, on a laptop webcam in room light closer to −5 to
++3 dB, and HR wanders by ±10 bpm at those levels. What helps, in order: bright steady
+front-on light (a lamp or window facing you, never behind you); sitting still and not
+talking; a camera at 25–30 fps (dim light makes webcams drop to 15–20 and adds sensor noise);
+and disabling the camera's own auto-corrections — auto-WB is turned off by default here
+(`--auto-wb` keeps it), and `--manual-exposure` also locks exposure, which helps because
+auto-gain actively cancels the brightness changes being measured, but can mis-expose the
+image. The quality readout and the "weak signal" warning tell you when to trust the number.
 
 ## Models
 

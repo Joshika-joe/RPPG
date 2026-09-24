@@ -8,10 +8,13 @@ Live heart-rate (and experimental breathing-rate) estimation from a webcam.
 How it works
     * Haar face detection every second; the box is kept fixed while the face stays put
       (the model was trained on one fixed box per recording) and only re-snaps on real moves.
-    * A rolling 5-s buffer of 64x64 face crops. Every --update-every frames the newest
-      window is temporally normalized and run through the model in a background thread.
-    * Window predictions are overlap-added (Hann-weighted, like src.inference) into one
-      continuous BVP; HR is the band-limited FFT peak of the last --hr-seconds of it.
+    * Face crops are buffered WITH TIMESTAMPS. Each model call resamples the last 5.0 seconds
+      onto exactly 150 frames (linear interpolation in time), which is what the model was
+      trained on, so the estimate no longer depends on the camera's frame rate. Feeding 150
+      consecutive captured frames instead costs ~2 bpm at 20 fps and ~14 bpm at 15 fps.
+    * Window predictions are overlap-added (Hann-weighted, like src.inference) onto a fixed
+      30 Hz timeline; HR is the band-limited FFT peak of the last --hr-seconds of it, median
+      of recent estimates, and estimates below --min-quality dB are ignored.
     * Breathing rate (experimental). Default `--resp-method chest`: vertical motion of the
       region below the face (phase correlation between consecutive frames), integrated,
       band-passed to 0.1-0.5 Hz, FFT peak over the last --resp-seconds. Independent of the
@@ -19,6 +22,13 @@ How it works
       predicted BVP (beat-to-beat HR modulation); on UBFC it agrees with the reference PPG's
       own RSA on only ~2 of 7 subjects, so it is kept for comparison only.
       Either way: sit still, needs ~30 s, and treat the number as indicative.
+
+Getting a good signal: bright, steady, front-on light (a window or lamp facing you, not
+behind you), no talking or head movement, and a camera running at 25-30 fps. Dim light makes
+webcams drop to 15-20 fps and raises sensor noise. Auto-white-balance and auto-exposure fight
+rPPG directly - the camera "corrects" the very brightness changes being measured - so this
+script turns auto-WB off where the driver allows it (`--auto-wb` to keep it, and
+`--manual-exposure` to also lock exposure, which helps but can mis-expose the image).
 
 Keys: q / ESC quit.
 """
@@ -44,6 +54,9 @@ from .models import build_model, load_weights
 from .preprocessing import crop_resize, get_face_detector
 
 Box = Tuple[int, int, int, int]
+
+WINDOW_SECONDS = 5.0  # the model's training window
+GRID_FPS = config.WINDOW_FRAMES / WINDOW_SECONDS  # 30 Hz timeline predictions live on
 
 
 # ==============================================================================
@@ -94,6 +107,19 @@ def breathing_rate_from_bvp(sig: np.ndarray, fs: float, band=(0.1, 0.5)) -> floa
     return float(freqs[m][np.argmax(power[m])] * 60.0)
 
 
+def resample_clip(frames: List[np.ndarray], times: np.ndarray, target_times: np.ndarray) -> np.ndarray:
+    """
+    Linear interpolation in time between buffered uint8 ROI frames.
+    Returns (len(target_times), H, W, C) float32 in [0, 1].
+    """
+    idx = np.clip(np.searchsorted(times, target_times), 1, len(times) - 1)
+    t0, t1 = times[idx - 1], times[idx]
+    w = ((target_times - t0) / np.maximum(t1 - t0, 1e-9)).astype(np.float32)[:, None, None, None]
+    a = np.stack([frames[i - 1] for i in idx]).astype(np.float32)
+    b = np.stack([frames[i] for i in idx]).astype(np.float32)
+    return (a * (1.0 - w) + b * w) / 255.0
+
+
 # ==============================================================================
 # FACE TRACKING
 # ==============================================================================
@@ -130,12 +156,12 @@ class FaceTracker:
             self.box = new
             return self.box
         bx, by, bw, bh = self.box
-        moved = abs((x + w / 2) - (bx + bw / 2)) > self.move_frac * bw or abs((y + h / 2) - (by + bh / 2)) > self.move_frac * bh
+        moved = (abs((x + w / 2) - (bx + bw / 2)) > self.move_frac * bw
+                 or abs((y + h / 2) - (by + bh / 2)) > self.move_frac * bh)
         resized = abs(w - bw) > self.move_frac * bw
         if moved or resized:
             self.box = new
         return self.box
-
 
 
 class ChestMotion:
@@ -149,7 +175,6 @@ class ChestMotion:
         self.band = band
         self.width = width
         self.prev: Optional[np.ndarray] = None
-        self.prev_shape = None
         self.disp: Deque[float] = collections.deque()
         self.times: Deque[float] = collections.deque()
         self.pos = 0.0
@@ -211,115 +236,126 @@ class ChestMotion:
 # ESTIMATOR
 # ==============================================================================
 class LiveEstimator:
-    def __init__(self, model, normalize: str, device, window: int, hr_seconds: float, resp_seconds: float,
-                 resp_method: str = "chest"):
+    def __init__(self, model, normalize: str, device, hr_seconds: float, resp_seconds: float,
+                 resp_method: str = "chest", min_quality: float = -3.0, smooth: int = 7):
         self.model = model
-        self.resp_method = resp_method
-        self.chest = ChestMotion(seconds=resp_seconds)
         self.normalize = normalize
         self.device = device
-        self.window = window
+        self.window = config.WINDOW_FRAMES
         self.hr_seconds = hr_seconds
         self.resp_seconds = resp_seconds
-        self.history_frames = int(resp_seconds * 35) + window  # generous ring for the highest fps
+        self.resp_method = resp_method
+        self.min_quality = min_quality
+        self.chest = ChestMotion(seconds=resp_seconds)
 
-        self.frames: Deque[np.ndarray] = collections.deque(maxlen=window)
-        self.times: Deque[float] = collections.deque(maxlen=self.history_frames)
-        self.n_seen = 0  # global frame counter
+        # capture buffer: enough for WINDOW_SECONDS even at 60 fps, plus margin
+        maxlen = int(60 * (WINDOW_SECONDS + 1))
+        self.frames: Deque[np.ndarray] = collections.deque(maxlen=maxlen)
+        self.times: Deque[float] = collections.deque(maxlen=maxlen)
+        self.t0: Optional[float] = None
         self.windows: Deque[Tuple[int, np.ndarray]] = collections.deque()
+        self.max_windows = 128
         self.lock = threading.Lock()
 
         self.hr = float("nan")
-        self.hr_smooth: Deque[float] = collections.deque(maxlen=5)
+        self.hr_smooth: Deque[float] = collections.deque(maxlen=smooth)
         self.resp = float("nan")
         self.resp_smooth: Deque[float] = collections.deque(maxlen=5)
         self.quality_db = float("nan")
         self.trace = np.zeros(0, dtype=np.float32)
-        self.fps = float("nan")
-        self.busy = False
+        self.capture_fps = float("nan")
+        self.buffered_seconds = 0.0
 
     # -- capture side ------------------------------------------------------
     def push(self, roi: np.ndarray, t: float) -> None:
         with self.lock:
+            if self.t0 is None:
+                self.t0 = t
             self.frames.append(roi)
             self.times.append(t)
-            self.n_seen += 1
+            if len(self.times) > 1:
+                span = self.times[-1] - self.times[0]
+                self.buffered_seconds = span
+                if span > 0:
+                    self.capture_fps = (len(self.times) - 1) / span
 
     def ready(self) -> bool:
-        return len(self.frames) == self.window
+        return self.buffered_seconds >= WINDOW_SECONDS
 
-    def snapshot(self):
+    def snapshot(self) -> Optional[Tuple[np.ndarray, int]]:
+        """Resamples the last WINDOW_SECONDS onto 150 frames; returns (clip, grid_start)."""
         with self.lock:
-            clip = np.stack(self.frames)
-            return clip, self.n_seen - self.window
+            if self.t0 is None or len(self.times) < 4:
+                return None
+            times = np.array(self.times)
+            frames = list(self.frames)
+            t0 = self.t0
+        t_end = times[-1]
+        t_start = t_end - WINDOW_SECONDS
+        if t_start < times[0]:
+            return None
+        target = np.linspace(t_start, t_end, self.window)
+        return resample_clip(frames, times, target), int(round((t_start - t0) * GRID_FPS))
 
     # -- inference side ----------------------------------------------------
-    def infer_window(self, clip: np.ndarray, start: int) -> None:
-        x = clip.astype(np.float32) / 255.0  # (T, H, W, C)
-        x = np.ascontiguousarray(np.transpose(x, (3, 0, 1, 2)))  # (C, T, H, W)
+    def infer_window(self, clip: np.ndarray, grid_start: int) -> None:
+        x = np.ascontiguousarray(np.transpose(clip, (3, 0, 1, 2)))  # (C, T, H, W)
         mean_frame = torch.from_numpy(np.ascontiguousarray(x.mean(axis=1)))[None]
         x = normalize_clip(x, self.normalize).astype(np.float32)
         with torch.no_grad():
             pred = self.model(torch.from_numpy(x)[None].to(self.device), appearance=mean_frame.to(self.device))
-        pred = pred[0].cpu().numpy()
         with self.lock:
-            self.windows.append((start, pred))
-            while self.windows and self.windows[0][0] < self.n_seen - self.history_frames:
+            self.windows.append((grid_start, pred[0].cpu().numpy()))
+            while len(self.windows) > self.max_windows:
                 self.windows.popleft()
         self.update_estimates()
 
     def update_estimates(self) -> None:
         with self.lock:
-            times = np.array(self.times)
-            n_seen = self.n_seen
             windows = list(self.windows)
-        if len(times) < self.window or not windows:
+        if not windows:
             return
-        fps = (len(times) - 1) / max(times[-1] - times[0], 1e-6)
-        self.fps = fps
-
-        # continuous signal over the retained history
-        n_hist = min(self.history_frames, n_seen)
-        offset = n_seen - n_hist
-        local = [(s - offset, p) for s, p in windows if s - offset >= 0]
-        if not local:
-            return
-        cont = overlap_add(local, n_hist, self.window)
-        first = local[0][0]
-        cont = cont[first:]  # drop the uncovered head
+        offset = windows[0][0]
+        n = windows[-1][0] + self.window - offset
+        cont = overlap_add([(s - offset, p) for s, p in windows], n, self.window)
         if len(cont) < self.window:
             return
-        filt = bandpass_filter(cont, fps)
+        filt = bandpass_filter(cont, GRID_FPS)
 
-        n_hr = min(len(filt), int(self.hr_seconds * fps))
+        n_hr = min(len(filt), int(self.hr_seconds * GRID_FPS))
         seg = filt[-n_hr:]
-        hr = estimate_hr_fft(seg, fps)
-        q = snr_db(seg, hr, fps)
-        self.hr_smooth.append(hr)
-        self.hr = float(np.median(self.hr_smooth))
-        self.quality_db = q
+        hr = estimate_hr_fft(seg, GRID_FPS)
+        self.quality_db = snr_db(seg, hr, GRID_FPS)
         self.trace = seg.astype(np.float32)
+        if np.isfinite(hr) and (not np.isfinite(self.quality_db) or self.quality_db >= self.min_quality):
+            self.hr_smooth.append(hr)
+        if self.hr_smooth:
+            self.hr = float(np.median(self.hr_smooth))
 
         if self.resp_method == "rsa":
-            n_resp = int(self.resp_seconds * fps)
-            resp = breathing_rate_from_bvp(filt[-n_resp:], fps) if len(filt) >= n_resp else float("nan")
+            n_resp = int(self.resp_seconds * GRID_FPS)
+            resp = breathing_rate_from_bvp(filt[-n_resp:], GRID_FPS) if len(filt) >= n_resp else float("nan")
         else:
             resp = self.chest.breathing_rate()
         if np.isfinite(resp):
             self.resp_smooth.append(resp)
             self.resp = float(np.median(self.resp_smooth))
 
+    @property
+    def signal_ok(self) -> bool:
+        return np.isfinite(self.quality_db) and self.quality_db >= self.min_quality
+
 
 # ==============================================================================
 # DISPLAY
 # ==============================================================================
-def draw_overlay(frame: np.ndarray, est: LiveEstimator, box: Optional[Box], seconds_buffered: float) -> np.ndarray:
+def draw_overlay(frame: np.ndarray, est: LiveEstimator, box: Optional[Box]) -> np.ndarray:
     h, w = frame.shape[:2]
     if box is not None:
         x, y, bw, bh = box
         cv2.rectangle(frame, (x, y), (x + bw, y + bh), (0, 200, 0), 2)
 
-    strip_h = 90
+    strip_h = 92
     canvas = np.zeros((h + strip_h, w, 3), dtype=np.uint8)
     canvas[:h] = frame
     tr = est.trace
@@ -336,23 +372,50 @@ def draw_overlay(frame: np.ndarray, est: LiveEstimator, box: Optional[Box], seco
     if box is None:
         put("No face detected", 30, (0, 0, 255))
     elif not est.ready():
-        put(f"Buffering face... {seconds_buffered:.1f} s", 30, (0, 200, 255))
+        put(f"Buffering face... {est.buffered_seconds:.1f} / {WINDOW_SECONDS:.0f} s", 30, (0, 200, 255))
     else:
-        good = np.isfinite(est.quality_db) and est.quality_db > -5.0
-        hr_txt = f"HR  {est.hr:5.1f} bpm" if np.isfinite(est.hr) else "HR  --"
-        put(hr_txt, 30, (0, 255, 0) if good else (0, 200, 255), 0.9)
+        ok = est.signal_ok
+        put(f"HR  {est.hr:5.1f} bpm" if np.isfinite(est.hr) else "HR  --", 30,
+            (0, 255, 0) if ok else (0, 200, 255), 0.9)
         method = "chest motion" if est.resp_method == "chest" else "pulse RSA"
-        resp_txt = (f"Breathing  {est.resp:4.1f} /min ({method}, experimental)" if np.isfinite(est.resp)
-                    else f"Breathing  -- ({method}; needs ~30 s, sit still)")
-        put(resp_txt, 58, (200, 200, 200), 0.6)
+        put(f"Breathing  {est.resp:4.1f} /min ({method}, experimental)" if np.isfinite(est.resp)
+            else f"Breathing  -- ({method}; needs ~30 s, sit still)", 58, (200, 200, 200), 0.6)
         q = f"quality {est.quality_db:+.1f} dB" if np.isfinite(est.quality_db) else "quality --"
-        put(f"{q}   {est.fps:.1f} fps   {'hold still' if not good else ''}", 82, (200, 200, 200), 0.55)
+        warn = "" if ok else "  weak signal - more light, hold still"
+        fps_warn = "  (low fps: more light)" if np.isfinite(est.capture_fps) and est.capture_fps < 24 else ""
+        put(f"{q}   {est.capture_fps:.1f} fps{fps_warn}{warn}", 84, (200, 200, 200), 0.55)
     return canvas
 
 
 # ==============================================================================
-# MAIN LOOP
+# CAPTURE
 # ==============================================================================
+def open_capture(args):
+    if args.video:
+        cap = cv2.VideoCapture(args.video)
+        if not cap.isOpened():
+            raise SystemExit(f"Could not open video {args.video}")
+        return cap
+
+    cap = cv2.VideoCapture(args.camera, cv2.CAP_DSHOW if sys.platform == "win32" else cv2.CAP_ANY)
+    if not cap.isOpened():
+        raise SystemExit(f"Could not open camera {args.camera}. Try --camera 1.")
+    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))  # raw YUY2 is often capped at 5-10 fps
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    cap.set(cv2.CAP_PROP_FPS, 30)
+    if not args.auto_wb:
+        cap.set(cv2.CAP_PROP_AUTO_WB, 0)
+    if args.manual_exposure:
+        cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)  # DSHOW: 0.25 = manual, 0.75 = auto
+    print(
+        f"Camera {args.camera}: {int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))}x{int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))}"
+        f" @ {cap.get(cv2.CAP_PROP_FPS):.0f} fps requested, auto-WB "
+        f"{'on' if args.auto_wb else 'off'}, exposure {'manual' if args.manual_exposure else 'auto'}"
+    )
+    return cap
+
+
 def load_run(run: str, device):
     run_dir = run if os.path.isabs(run) else os.path.join(config.PROJECT_ROOT, run)
     with open(os.path.join(run_dir, "config.json"), "r", encoding="utf-8") as f:
@@ -362,33 +425,26 @@ def load_run(run: str, device):
     return model, cfg["normalize"]
 
 
-def open_capture(args):
-    if args.video:
-        cap = cv2.VideoCapture(args.video)
-    elif sys.platform == "win32":
-        cap = cv2.VideoCapture(args.camera, cv2.CAP_DSHOW)
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-        cap.set(cv2.CAP_PROP_FPS, 30)
-    else:
-        cap = cv2.VideoCapture(args.camera)
-    if not cap.isOpened():
-        raise SystemExit(f"Could not open {'video ' + args.video if args.video else 'camera ' + str(args.camera)}")
-    return cap
-
-
+# ==============================================================================
+# MAIN LOOP
+# ==============================================================================
 def main() -> None:
     p = argparse.ArgumentParser(description="Live rPPG heart-rate estimation")
     p.add_argument("--run", default="results/v3_pearson")
     p.add_argument("--camera", type=int, default=0)
     p.add_argument("--video", help="read a video file instead of the camera (uses its fps)")
-    p.add_argument("--update-every", type=int, default=15, help="frames between model updates")
+    p.add_argument("--update-every", type=float, default=0.5, help="seconds between model updates")
     p.add_argument("--hr-seconds", type=float, default=10.0)
     p.add_argument("--resp-seconds", type=float, default=45.0)
     p.add_argument("--resp-method", default="chest", choices=["chest", "rsa"])
+    p.add_argument("--min-quality", type=float, default=-3.0, help="ignore HR estimates below this SNR (dB)")
+    p.add_argument("--smooth", type=int, default=7, help="median filter length over recent HR estimates")
     p.add_argument("--threads", type=int, default=4)
+    p.add_argument("--auto-wb", action="store_true", help="leave auto white balance on")
+    p.add_argument("--manual-exposure", action="store_true", help="lock exposure (helps rPPG, may mis-expose)")
     p.add_argument("--no-display", action="store_true")
     p.add_argument("--log-every", type=float, default=2.0, help="seconds between stdout lines")
+    p.add_argument("--simulate-fps", type=float, default=0.0, help="drop frames to emulate a slower camera (testing)")
     args = p.parse_args()
 
     torch.set_num_threads(args.threads)
@@ -399,10 +455,12 @@ def main() -> None:
     cap = open_capture(args)
     video_fps = cap.get(cv2.CAP_PROP_FPS) if args.video else None
     tracker = FaceTracker()
-    est = LiveEstimator(model, normalize, device, config.WINDOW_FRAMES, args.hr_seconds, args.resp_seconds,
-                        resp_method=args.resp_method)
+    est = LiveEstimator(model, normalize, device, args.hr_seconds, args.resp_seconds,
+                        resp_method=args.resp_method, min_quality=args.min_quality, smooth=args.smooth)
     worker: Optional[threading.Thread] = None
     frame_idx = 0
+    last_kept: Optional[float] = None
+    last_infer = -1e9
     last_log = -1e9
     print("Running. Press q / ESC in the window to quit." if not args.no_display else "Running headless.")
 
@@ -413,6 +471,10 @@ def main() -> None:
                 break
             t = frame_idx / video_fps if args.video else time.perf_counter()
             frame_idx += 1
+            if args.simulate_fps > 0:
+                if last_kept is not None and t - last_kept < 1.0 / args.simulate_fps - 1e-9:
+                    continue
+                last_kept = t
 
             box = tracker.update(frame)
             if args.resp_method == "chest":
@@ -423,32 +485,33 @@ def main() -> None:
                 except ValueError:
                     pass
 
-            if est.ready() and frame_idx % args.update_every == 0:
-                clip, start = est.snapshot()
-                if args.video:
-                    est.infer_window(clip, start)  # synchronous: files are read faster than real time
-                elif worker is None or not worker.is_alive():
-                    worker = threading.Thread(target=est.infer_window, args=(clip, start), daemon=True)
-                    worker.start()
+            if est.ready() and t - last_infer >= args.update_every:
+                snap = est.snapshot()
+                if snap is not None:
+                    last_infer = t
+                    if args.video:
+                        est.infer_window(*snap)  # files are read faster than real time
+                    elif worker is None or not worker.is_alive():
+                        worker = threading.Thread(target=est.infer_window, args=snap, daemon=True)
+                        worker.start()
 
             if t - last_log >= args.log_every and est.ready():
                 last_log = t
                 print(
-                    f"t={t:6.1f}s  HR {est.hr:6.1f} bpm  breathing {est.resp:5.1f}/min  "
-                    f"quality {est.quality_db:+5.1f} dB  fps {est.fps:4.1f}",
+                    f"t={t:8.1f}s  HR {est.hr:6.1f} bpm  breathing {est.resp:5.1f}/min  "
+                    f"quality {est.quality_db:+5.1f} dB  fps {est.capture_fps:4.1f}"
+                    f"{'' if est.signal_ok else '  (weak)'}",
                     flush=True,
                 )
 
             if not args.no_display:
-                shown = cv2.flip(frame, 1) if not args.video else frame
+                shown = frame if args.video else cv2.flip(frame, 1)
                 shown_box = box
                 if box is not None and not args.video:  # mirror the box with the image
                     x, y, bw, bh = box
                     shown_box = (frame.shape[1] - x - bw, y, bw, bh)
-                buffered = len(est.frames) / (est.fps if np.isfinite(est.fps) and est.fps > 0 else 30.0)
-                cv2.imshow("rPPG live", draw_overlay(shown, est, shown_box, buffered))
-                key = cv2.waitKey(1) & 0xFF
-                if key in (ord("q"), 27):
+                cv2.imshow("rPPG live", draw_overlay(shown, est, shown_box))
+                if (cv2.waitKey(1) & 0xFF) in (ord("q"), 27):
                     break
     finally:
         cap.release()
