@@ -1,0 +1,307 @@
+{
+  "run": "results/v3_pearson",
+  "split": "val",
+  "segment_frames": 300,
+  "estimators": {
+    "fft": {
+      "n": 33,
+      "mae": 0.8970780149764281,
+      "rmse": 2.783647094040655,
+      "median": 0.733521827486868,
+      "within5": 0.9696969696969697,
+      "doubled": 0,
+      "halved": 0,
+      "other": 1,
+      "invalid": 0,
+      "median_peak_margin_db": 8.048251061090884
+    },
+    "welch": {
+      "n": 33,
+      "mae": 1.4247710160183535,
+      "rmse": 3.2882077349295407,
+      "median": 0.0,
+      "within5": 0.9696969696969697,
+      "doubled": 0,
+      "halved": 0,
+      "other": 1,
+      "invalid": 0,
+      "median_peak_margin_db": 8.255954457062458
+    },
+    "autocorr": {
+      "n": 33,
+      "mae": 0.6694473608938577,
+      "rmse": 0.9642557762383556,
+      "median": 0.37340074424328407,
+      "within5": 1.0,
+      "doubled": 0,
+      "halved": 0,
+      "other": 0,
+      "invalid": 0,
+      "median_peak_margin_db": 0.810904522745315
+    },
+    "peaks": {
+      "n": 33,
+      "mae": 1.1293625717726745,
+      "rmse": 2.4059752058762824,
+      "median": 0.0,
+      "within5": 0.9090909090909091,
+      "doubled": 0,
+      "halved": 0,
+      "other": 3,
+      "invalid": 0,
+      "median_peak_margin_db": NaN
+    }
+  },
+  "subharmonic_off": {
+    "fft": {
+      "n": 33,
+      "mae": 0.8970780149764281,
+      "rmse": 2.783647094040655,
+      "median": 0.733521827486868,
+      "within5": 0.9696969696969697,
+      "doubled": 0,
+      "halved": 0,
+      "other": 1,
+      "invalid": 0,
+      "median_peak_margin_db": 8.048251061090884
+    },
+    "welch": {
+      "n": 33,
+      "mae": 1.4247710160183535,
+      "rmse": 3.2882077349295407,
+      "median": 0.0,
+      "within5": 0.9696969696969697,
+      "doubled": 0,
+      "halved": 0,
+      "other": 1,
+      "invalid": 0,
+      "median_peak_margin_db": 8.255954457062458
+    },
+    "autocorr": {
+      "n": 33,
+      "mae": 0.6694473608938577,
+      "rmse": 0.9642557762383556,
+      "median": 0.37340074424328407,
+      "within5": 1.0,
+      "doubled": 0,
+      "halved": 0,
+      "other": 0,
+      "invalid": 0,
+      "median_peak_margin_db": 0.810904522745315
+    },
+    "peaks": {
+      "n": 33,
+      "mae": 1.1293625717726745,
+      "rmse": 2.4059752058762824,
+      "median": 0.0,
+      "within5": 0.9090909090909091,
+      "doubled": 0,
+      "halved": 0,
+      "other": 3,
+      "invalid": 0,
+      "median_peak_margin_db": NaN
+    }
+  },
+  "bands": {
+    "0.7-4.0": {
+      "fft": {
+        "n": 33,
+        "mae": 0.8970780149764281,
+        "rmse": 2.783647094040655,
+        "median": 0.733521827486868,
+        "within5": 0.9696969696969697,
+        "doubled": 0,
+        "halved": 0,
+        "other": 1,
+        "invalid": 0,
+        "median_peak_margin_db": 8.048251061090884
+      },
+      "welch": {
+        "n": 33,
+        "mae": 1.4247710160183535,
+        "rmse": 3.2882077349295407,
+        "median": 0.0,
+        "within5": 0.9696969696969697,
+        "doubled": 0,
+        "halved": 0,
+        "other": 1,
+        "invalid": 0,
+        "median_peak_margin_db": 8.255954457062458
+      },
+      "autocorr": {
+        "n": 33,
+        "mae": 0.6694473608938577,
+        "rmse": 0.9642557762383556,
+        "median": 0.37340074424328407,
+        "within5": 1.0,
+        "doubled": 0,
+        "halved": 0,
+        "other": 0,
+        "invalid": 0,
+        "median_peak_margin_db": 0.810904522745315
+      },
+      "peaks": {
+        "n": 33,
+        "mae": 1.1293625717726745,
+        "rmse": 2.4059752058762824,
+        "median": 0.0,
+        "within5": 0.9090909090909091,
+        "doubled": 0,
+        "halved": 0,
+        "other": 3,
+        "invalid": 0,
+        "median_peak_margin_db": NaN
+      }
+    },
+    "0.7-3.0": {
+      "fft": {
+        "n": 33,
+        "mae": 0.8970780149764281,
+        "rmse": 2.783647094040655,
+        "median": 0.733521827486868,
+        "within5": 0.9696969696969697,
+        "doubled": 0,
+        "halved": 0,
+        "other": 1,
+        "invalid": 0,
+        "median_peak_margin_db": 15.266492252467502
+      },
+      "welch": {
+        "n": 33,
+        "mae": 1.4247710160183535,
+        "rmse": 3.2882077349295407,
+        "median": 0.0,
+        "within5": 0.9696969696969697,
+        "doubled": 0,
+        "halved": 0,
+        "other": 1,
+        "invalid": 0,
+        "median_peak_margin_db": 23.061462169195806
+      },
+      "autocorr": {
+        "n": 33,
+        "mae": 2.6198100057361904,
+        "rmse": 9.848958966401662,
+        "median": 0.565575751248204,
+        "within5": 0.9393939393939394,
+        "doubled": 1,
+        "halved": 0,
+        "other": 1,
+        "invalid": 0,
+        "median_peak_margin_db": 0.6541393287716201
+      },
+      "peaks": {
+        "n": 33,
+        "mae": 1.49195421463159,
+        "rmse": 2.749249803595048,
+        "median": 0.0,
+        "within5": 0.8484848484848485,
+        "doubled": 0,
+        "halved": 0,
+        "other": 5,
+        "invalid": 0,
+        "median_peak_margin_db": NaN
+      }
+    },
+    "0.75-2.5": {
+      "fft": {
+        "n": 33,
+        "mae": 0.8970780149764281,
+        "rmse": 2.783647094040655,
+        "median": 0.733521827486868,
+        "within5": 0.9696969696969697,
+        "doubled": 0,
+        "halved": 0,
+        "other": 1,
+        "invalid": 0,
+        "median_peak_margin_db": 17.67254553672076
+      },
+      "welch": {
+        "n": 33,
+        "mae": 1.3677145423840702,
+        "rmse": 3.2718313753909034,
+        "median": 0.0,
+        "within5": 0.9696969696969697,
+        "doubled": 0,
+        "halved": 0,
+        "other": 1,
+        "invalid": 0,
+        "median_peak_margin_db": 25.28659943151061
+      },
+      "autocorr": {
+        "n": 33,
+        "mae": 0.6851054282545297,
+        "rmse": 0.9022788470715447,
+        "median": 0.6083650400631484,
+        "within5": 1.0,
+        "doubled": 0,
+        "halved": 0,
+        "other": 0,
+        "invalid": 0,
+        "median_peak_margin_db": 0.6662941708490191
+      },
+      "peaks": {
+        "n": 33,
+        "mae": 0.98206262973595,
+        "rmse": 2.1923060645083443,
+        "median": 0.0,
+        "within5": 0.9393939393939394,
+        "doubled": 0,
+        "halved": 0,
+        "other": 2,
+        "invalid": 0,
+        "median_peak_margin_db": NaN
+      }
+    },
+    "0.8-2.2": {
+      "fft": {
+        "n": 33,
+        "mae": 0.8970780149764281,
+        "rmse": 2.783647094040655,
+        "median": 0.733521827486868,
+        "within5": 0.9696969696969697,
+        "doubled": 0,
+        "halved": 0,
+        "other": 1,
+        "invalid": 0,
+        "median_peak_margin_db": 18.744070233381386
+      },
+      "welch": {
+        "n": 33,
+        "mae": 1.2537108719203358,
+        "rmse": 3.2056817762353935,
+        "median": 0.0,
+        "within5": 0.9696969696969697,
+        "doubled": 0,
+        "halved": 0,
+        "other": 1,
+        "invalid": 0,
+        "median_peak_margin_db": 25.178096055764108
+      },
+      "autocorr": {
+        "n": 33,
+        "mae": 0.681221658382167,
+        "rmse": 0.9201793889077604,
+        "median": 0.4343523877162312,
+        "within5": 1.0,
+        "doubled": 0,
+        "halved": 0,
+        "other": 0,
+        "invalid": 0,
+        "median_peak_margin_db": 0.5946369578812667
+      },
+      "peaks": {
+        "n": 33,
+        "mae": 1.0103480150482116,
+        "rmse": 2.2200133675581966,
+        "median": 0.0,
+        "within5": 0.9090909090909091,
+        "doubled": 0,
+        "halved": 0,
+        "other": 3,
+        "invalid": 0,
+        "median_peak_margin_db": NaN
+      }
+    }
+  }
+}

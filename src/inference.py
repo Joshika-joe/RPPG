@@ -28,11 +28,16 @@ def hann_weights(n: int) -> np.ndarray:
 
 
 def overlap_add(
-    windows: Sequence[Tuple[int, np.ndarray]], n_frames: int, window_frames: int
-) -> np.ndarray:
+    windows: Sequence[Tuple[int, np.ndarray]], n_frames: int, window_frames: int,
+    return_coverage: bool = False,
+):
     """
     windows: list of (start, prediction (window_frames,)). Each prediction is standardized
     before blending so amplitude differences between windows do not create seams.
+
+    Samples that no window covers stay at zero. That is a hole, not a signal - downstream
+    frequency estimation would read the step edges as content - so callers that cannot
+    guarantee contiguous windows should pass return_coverage=True and check it.
     """
     out = np.zeros(n_frames, dtype=np.float64)
     wsum = np.zeros(n_frames, dtype=np.float64)
@@ -44,6 +49,8 @@ def overlap_add(
         wsum[start : start + window_frames] += w
     covered = wsum > 0
     out[covered] /= wsum[covered]
+    if return_coverage:
+        return out.astype(np.float32), covered
     return out.astype(np.float32)
 
 

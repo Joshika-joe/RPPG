@@ -1,0 +1,55 @@
+{
+  "run": "results/v3_pearson",
+  "split": "test",
+  "segment_frames": 300,
+  "estimators": {
+    "fft": {
+      "n": 42,
+      "mae": 0.540464441189498,
+      "rmse": 0.74140169705571,
+      "median": 0.7233466778458038,
+      "within5": 1.0,
+      "doubled": 0,
+      "halved": 0,
+      "other": 0,
+      "invalid": 0,
+      "median_peak_margin_db": 8.164889688116642
+    },
+    "welch": {
+      "n": 42,
+      "mae": 0.7629762455783144,
+      "rmse": 1.45260986513018,
+      "median": 0.0,
+      "within5": 0.9761904761904762,
+      "doubled": 0,
+      "halved": 0,
+      "other": 1,
+      "invalid": 0,
+      "median_peak_margin_db": 7.835308438082907
+    },
+    "autocorr": {
+      "n": 42,
+      "mae": 2.6730853147662144,
+      "rmse": 10.186714045479478,
+      "median": 0.702966143501957,
+      "within5": 0.9523809523809523,
+      "doubled": 0,
+      "halved": 1,
+      "other": 1,
+      "invalid": 0,
+      "median_peak_margin_db": 0.582242694444375
+    },
+    "peaks": {
+      "n": 42,
+      "mae": 2.5101233989244296,
+      "rmse": 5.14723832433447,
+      "median": 0.0,
+      "within5": 0.8333333333333334,
+      "doubled": 0,
+      "halved": 0,
+      "other": 7,
+      "invalid": 0,
+      "median_peak_margin_db": NaN
+    }
+  }
+}

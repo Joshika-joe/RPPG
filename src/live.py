@@ -14,8 +14,20 @@ How it works
       trained on, so the estimate no longer depends on the camera's frame rate. Feeding 150
       consecutive captured frames instead costs ~2 bpm at 20 fps and ~14 bpm at 15 fps.
     * Window predictions are overlap-added (Hann-weighted, like src.inference) onto a fixed
-      30 Hz timeline; HR is the band-limited FFT peak of the last --hr-seconds of it, median
-      of recent estimates, and estimates below --min-quality dB are ignored.
+      30 Hz timeline. Heart rate comes from --hr-method over the last --hr-seconds of that
+      signal (autocorrelation by default - it had the lowest error and no large outliers on
+      validation), median-filtered over recent estimates.
+    * An estimate is only shown when it passes every check: a face is present, the buffer
+      spans a full window, no gap between captured frames exceeds --max-gap, the overlap-add
+      signal has no holes, SNR is at least --min-quality, the chosen spectral peak leads its
+      nearest rival by --min-peak-margin dB, and a second estimator (--cross-check) agrees to
+      within --max-disagreement bpm. Otherwise the display names the reason instead of showing
+      a number, and the accepted fraction is reported. Thresholds are percentiles of the
+      indicator distribution on validation data the model handles well - they flag input that
+      does not look like what the model was trained on. They are NOT calibrated probabilities
+      of correctness: UBFC contains almost no failures to calibrate against (zero test
+      segments exceed 5 bpm error), so the gate is validated only as an out-of-distribution
+      detector until a live study with a reference sensor is run.
     * Breathing rate (experimental). Default `--resp-method chest`: vertical motion of the
       region below the face (phase correlation between consecutive frames), integrated,
       band-passed to 0.1-0.5 Hz, FFT peak over the last --resp-seconds. Independent of the
@@ -52,14 +64,25 @@ import torch
 from . import config
 from .dataset import normalize_clip
 from .inference import overlap_add
-from .metrics import bandpass_filter, estimate_hr_fft, snr_db
+from .hr_estimators import METHODS, estimate_hr_detail, peak_margin_db
+from .metrics import bandpass_filter, snr_db
 from .models import build_model, load_weights
 from .preprocessing import crop_resize, get_face_detector
 
 Box = Tuple[int, int, int, int]
 
-WINDOW_SECONDS = 5.0  # the model's training window
-GRID_FPS = config.WINDOW_FRAMES / WINDOW_SECONDS  # 30 Hz timeline predictions live on
+# Predictions live on an exact 1/GRID_FPS grid. Spacing the 150 samples over a closed
+# 5.0 s interval would give 149 intervals (29.8 Hz) while the grid assumed 30 Hz - a 0.67%
+# systematic HR bias (+0.5 bpm at 70). The window therefore spans (N-1)/GRID_FPS seconds.
+GRID_FPS = 30.0
+WINDOW_SECONDS = (config.WINDOW_FRAMES - 1) / GRID_FPS  # 4.967 s for 150 samples at 30 Hz
+
+# Live quality states, in the order they are checked.
+STATE_NO_FACE = "face not detected"
+STATE_FILLING = "insufficient frames"
+STATE_TIMING = "camera timing problem"
+STATE_LOW_SIGNAL = "low signal quality"
+STATE_OK = "estimating"
 
 
 # ==============================================================================
@@ -240,7 +263,10 @@ class ChestMotion:
 # ==============================================================================
 class LiveEstimator:
     def __init__(self, model, normalize: str, device, hr_seconds: float, resp_seconds: float,
-                 resp_method: str = "chest", min_quality: float = -3.0, smooth: int = 7):
+                 resp_method: str = "chest", min_quality: float = -3.0, smooth: int = 7,
+                 hr_method: str = "fft", cross_check: str = "autocorr",
+                 max_agreement_bpm: float = 5.7, min_peak_margin: float = 3.2,
+                 max_gap_seconds: float = 0.25):
         self.model = model
         self.normalize = normalize
         self.device = device
@@ -249,6 +275,11 @@ class LiveEstimator:
         self.resp_seconds = resp_seconds
         self.resp_method = resp_method
         self.min_quality = min_quality
+        self.hr_method = hr_method
+        self.cross_check = cross_check
+        self.max_agreement_bpm = max_agreement_bpm
+        self.min_peak_margin = min_peak_margin
+        self.max_gap_seconds = max_gap_seconds
         self.chest = ChestMotion(seconds=resp_seconds)
 
         # capture buffer: enough for WINDOW_SECONDS even at 60 fps, plus margin
@@ -268,12 +299,32 @@ class LiveEstimator:
         self.trace = np.zeros(0, dtype=np.float32)
         self.capture_fps = float("nan")
         self.buffered_seconds = 0.0
+        self.box = None  # crop geometry the buffered frames were taken with
+        self.state = STATE_NO_FACE
+        self.hr_cross = float("nan")      # the cross-check estimator's value
+        self.peak_margin = float("nan")   # dB between the chosen peak and its nearest rival
+        self.max_gap = float("nan")       # largest frame interval inside the model window
+        self.coverage = 0.0               # fraction of the HR segment backed by predictions
+        self.rejects = 0
+        self.accepts = 0
 
     # -- capture side ------------------------------------------------------
-    def push(self, roi: np.ndarray, t: float) -> None:
+    def reset_buffer(self) -> None:
+        """Drops buffered frames but keeps past predictions, which remain valid for their time."""
+        self.frames.clear()
+        self.times.clear()
+        self.buffered_seconds = 0.0
+
+    def push(self, roi: np.ndarray, t: float, box=None) -> None:
         with self.lock:
             if self.t0 is None:
                 self.t0 = t
+            # A re-snapped face box changes the crop geometry. A window spanning the change
+            # contains a step in appearance that the model never saw in training, and which
+            # survives temporal mean subtraction, so start the buffer again.
+            if box is not None and self.box is not None and box != self.box:
+                self.reset_buffer()
+            self.box = box
             self.frames.append(roi)
             self.times.append(t)
             if len(self.times) > 1:
@@ -286,18 +337,32 @@ class LiveEstimator:
         return self.buffered_seconds >= WINDOW_SECONDS
 
     def snapshot(self) -> Optional[Tuple[np.ndarray, int]]:
-        """Resamples the last WINDOW_SECONDS onto 150 frames; returns (clip, grid_start)."""
+        """
+        Resamples the last window onto exactly config.WINDOW_FRAMES samples spaced 1/GRID_FPS
+        apart. Returns (clip, grid_start), or None if the buffer is too short or contains a
+        timing gap - interpolating across dropped frames invents data rather than recovering it.
+        """
         with self.lock:
             if self.t0 is None or len(self.times) < 4:
+                self.state = STATE_FILLING
                 return None
             times = np.array(self.times)
             frames = list(self.frames)
             t0 = self.t0
         t_end = times[-1]
-        t_start = t_end - WINDOW_SECONDS
+        target = t_end - np.arange(self.window - 1, -1, -1) / GRID_FPS
+        t_start = target[0]
         if t_start < times[0]:
+            self.state = STATE_FILLING
             return None
-        target = np.linspace(t_start, t_end, self.window)
+
+        inside = times >= t_start
+        gaps = np.diff(times[inside])
+        self.max_gap = float(gaps.max()) if len(gaps) else float("nan")
+        if len(gaps) == 0 or self.max_gap > self.max_gap_seconds:
+            self.state = STATE_TIMING
+            return None
+
         return resample_clip(frames, times, target), int(round((t_start - t0) * GRID_FPS))
 
     # -- inference side ----------------------------------------------------
@@ -320,18 +385,45 @@ class LiveEstimator:
             return
         offset = windows[0][0]
         n = windows[-1][0] + self.window - offset
-        cont = overlap_add([(s - offset, p) for s, p in windows], n, self.window)
+        cont, covered = overlap_add([(s - offset, p) for s, p in windows], n, self.window,
+                                    return_coverage=True)
         if len(cont) < self.window:
             return
-        filt = bandpass_filter(cont, GRID_FPS)
 
-        n_hr = min(len(filt), int(self.hr_seconds * GRID_FPS))
+        n_hr = min(len(cont), int(self.hr_seconds * GRID_FPS))
+        seg_cov = covered[-n_hr:]
+        self.coverage = float(seg_cov.mean())
+        if self.coverage < 0.999:
+            # A hole left by dropped frames or a face loss; its step edges would dominate
+            # the spectrum. Report the gap rather than a number derived from zeros.
+            self.state = STATE_TIMING
+            self.rejects += 1
+            return
+
+        filt = bandpass_filter(cont, GRID_FPS)
         seg = filt[-n_hr:]
-        hr = estimate_hr_fft(seg, GRID_FPS)
-        self.quality_db = snr_db(seg, hr, GRID_FPS)
         self.trace = seg.astype(np.float32)
-        if np.isfinite(hr) and (not np.isfinite(self.quality_db) or self.quality_db >= self.min_quality):
+
+        detail = estimate_hr_detail(seg, GRID_FPS, method=self.hr_method)
+        hr = detail["hr_bpm"]
+        self.peak_margin = peak_margin_db(detail)
+        self.hr_cross = estimate_hr_detail(seg, GRID_FPS, method=self.cross_check)["hr_bpm"]
+        # snr_db is evaluated at this estimator's own peak, so it is optimistic compared with
+        # the offline metric, which evaluates it at the reference frequency. Use it to compare
+        # live conditions with each other, not against the dataset numbers.
+        self.quality_db = snr_db(seg, hr, GRID_FPS) if np.isfinite(hr) else float("nan")
+
+        agree = (np.isfinite(hr) and np.isfinite(self.hr_cross)
+                 and abs(hr - self.hr_cross) <= self.max_agreement_bpm)
+        quality_ok = not np.isfinite(self.quality_db) or self.quality_db >= self.min_quality
+        margin_ok = not np.isfinite(self.peak_margin) or self.peak_margin >= self.min_peak_margin
+        if np.isfinite(hr) and quality_ok and agree and margin_ok:
             self.hr_smooth.append(hr)
+            self.accepts += 1
+            self.state = STATE_OK
+        else:
+            self.rejects += 1
+            self.state = STATE_LOW_SIGNAL
         if self.hr_smooth:
             self.hr = float(np.median(self.hr_smooth))
 
@@ -346,7 +438,13 @@ class LiveEstimator:
 
     @property
     def signal_ok(self) -> bool:
-        return np.isfinite(self.quality_db) and self.quality_db >= self.min_quality
+        return self.state == STATE_OK and np.isfinite(self.hr)
+
+    @property
+    def availability(self) -> float:
+        """Fraction of model updates that produced an accepted estimate."""
+        total = self.accepts + self.rejects
+        return self.accepts / total if total else float("nan")
 
 
 # ==============================================================================
@@ -374,20 +472,32 @@ def draw_overlay(frame: np.ndarray, est: LiveEstimator, box: Optional[Box]) -> n
 
     if box is None:
         dark = frame.mean() < DARK_FRAME_MEAN
-        put("No face detected" + ("  -  image too dark, add light" if dark else ""), 30, (0, 0, 255))
+        put(STATE_NO_FACE.capitalize() + ("  -  image too dark, add light" if dark else ""),
+            30, (0, 0, 255))
     elif not est.ready():
-        put(f"Buffering face... {est.buffered_seconds:.1f} / {WINDOW_SECONDS:.0f} s", 30, (0, 200, 255))
+        put(f"{STATE_FILLING.capitalize()}... {est.buffered_seconds:.1f} / {WINDOW_SECONDS:.1f} s",
+            30, (0, 200, 255))
     else:
         ok = est.signal_ok
-        put(f"HR  {est.hr:5.1f} bpm" if np.isfinite(est.hr) else "HR  --", 30,
-            (0, 255, 0) if ok else (0, 200, 255), 0.9)
+        colour = {STATE_OK: (0, 255, 0), STATE_LOW_SIGNAL: (0, 200, 255),
+                  STATE_TIMING: (0, 140, 255)}.get(est.state, (0, 200, 255))
+        if ok:
+            put(f"HR  {est.hr:5.1f} bpm", 30, colour, 0.9)
+        else:
+            held = f"   (last accepted {est.hr:.0f})" if np.isfinite(est.hr) else ""
+            put(f"{est.state.capitalize()}{held}", 30, colour, 0.75)
         method = "chest motion" if est.resp_method == "chest" else "pulse RSA"
         put(f"Breathing  {est.resp:4.1f} /min ({method}, experimental)" if np.isfinite(est.resp)
             else f"Breathing  -- ({method}; needs ~30 s, sit still)", 58, (200, 200, 200), 0.6)
-        q = f"quality {est.quality_db:+.1f} dB" if np.isfinite(est.quality_db) else "quality --"
-        warn = "" if ok else "  weak signal - more light, hold still"
-        fps_warn = "  (low fps: more light)" if np.isfinite(est.capture_fps) and est.capture_fps < 24 else ""
-        put(f"{q}   {est.capture_fps:.1f} fps{fps_warn}{warn}", 84, (200, 200, 200), 0.55)
+        bits = [f"quality {est.quality_db:+.1f} dB" if np.isfinite(est.quality_db) else "quality --",
+                f"{est.capture_fps:.1f} fps"]
+        if np.isfinite(est.hr_cross):
+            bits.append(f"{est.cross_check} {est.hr_cross:.0f}")
+        if np.isfinite(est.availability):
+            bits.append(f"accepted {est.availability:.0%}")
+        if np.isfinite(est.capture_fps) and est.capture_fps < 24:
+            bits.append("low fps: more light")
+        put("   ".join(bits), 84, (200, 200, 200), 0.55)
     return canvas
 
 
@@ -570,7 +680,18 @@ def main() -> None:
     p.add_argument("--hr-seconds", type=float, default=10.0)
     p.add_argument("--resp-seconds", type=float, default=45.0)
     p.add_argument("--resp-method", default="chest", choices=["chest", "rsa"])
-    p.add_argument("--min-quality", type=float, default=-3.0, help="ignore HR estimates below this SNR (dB)")
+    p.add_argument("--hr-method", default="fft", choices=METHODS,
+                   help="heart-rate estimator (fft: lowest test error; see docs/ESTIMATORS.md)")
+    p.add_argument("--cross-check", default="autocorr", choices=METHODS,
+                   help="second estimator; estimates are rejected when the two disagree")
+    p.add_argument("--max-disagreement", type=float, default=5.7,
+                   help="bpm gap between the two estimators that rejects an estimate (val p95)")
+    p.add_argument("--min-peak-margin", type=float, default=3.2,
+                   help="dB the chosen spectral peak must lead its nearest rival by (val p5)")
+    p.add_argument("--max-gap", type=float, default=0.25,
+                   help="largest allowed gap between captured frames, seconds")
+    p.add_argument("--min-quality", type=float, default=-1.9,
+                   help="reject HR estimates below this SNR in dB (5th percentile of validation)")
     p.add_argument("--smooth", type=int, default=7, help="median filter length over recent HR estimates")
     p.add_argument("--threads", type=int, default=4)
     p.add_argument("--auto-wb", action="store_true", help="leave auto white balance on")
@@ -594,7 +715,10 @@ def main() -> None:
     video_fps = cap.get(cv2.CAP_PROP_FPS) if args.video else None
     tracker = FaceTracker()
     est = LiveEstimator(model, normalize, device, args.hr_seconds, args.resp_seconds,
-                        resp_method=args.resp_method, min_quality=args.min_quality, smooth=args.smooth)
+                        resp_method=args.resp_method, min_quality=args.min_quality, smooth=args.smooth,
+                        hr_method=args.hr_method, cross_check=args.cross_check,
+                        max_agreement_bpm=args.max_disagreement,
+                        min_peak_margin=args.min_peak_margin, max_gap_seconds=args.max_gap)
     worker: Optional[threading.Thread] = None
     frame_idx = 0
     last_kept: Optional[float] = None
@@ -619,9 +743,11 @@ def main() -> None:
                 est.chest.update(frame, box, t)
             if box is not None:
                 try:
-                    est.push(crop_resize(frame, box, config.TARGET_SIZE), t)
+                    est.push(crop_resize(frame, box, config.TARGET_SIZE), t, box=box)
                 except ValueError:
                     pass
+            else:
+                est.state = STATE_NO_FACE
 
             if est.ready() and t - last_infer >= args.update_every:
                 snap = est.snapshot()
@@ -636,9 +762,11 @@ def main() -> None:
             if t - last_log >= args.log_every and est.ready():
                 last_log = t
                 print(
-                    f"t={t:8.1f}s  HR {est.hr:6.1f} bpm  breathing {est.resp:5.1f}/min  "
-                    f"quality {est.quality_db:+5.1f} dB  fps {est.capture_fps:4.1f}"
-                    f"{'' if est.signal_ok else '  (weak)'}",
+                    f"t={t:8.1f}s  [{est.state:<21}] HR {est.hr:6.1f} bpm  "
+                    f"{est.cross_check} {est.hr_cross:6.1f}  resp {est.resp:5.1f}/min  "
+                    f"quality {est.quality_db:+5.1f} dB  margin {est.peak_margin:5.1f} dB  "
+                    f"fps {est.capture_fps:4.1f}  gap {est.max_gap * 1000:5.0f} ms  "
+                    f"accepted {est.availability:4.0%}",
                     flush=True,
                 )
 

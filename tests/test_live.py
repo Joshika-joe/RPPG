@@ -6,8 +6,9 @@ from tests.conftest import make_bvp
 
 
 def test_grid_constants():
-    assert WINDOW_SECONDS == 5.0
+    # 150 samples at 30 Hz span 149 intervals; treating them as 5.0 s biased HR by +0.67%.
     assert GRID_FPS == 30.0
+    assert abs(WINDOW_SECONDS - 149 / 30.0) < 1e-12
 
 
 def test_resample_clip_recovers_a_known_timeline():
