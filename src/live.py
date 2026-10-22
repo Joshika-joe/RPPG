@@ -27,8 +27,10 @@ Getting a good signal: bright, steady, front-on light (a window or lamp facing y
 behind you), no talking or head movement, and a camera running at 25-30 fps. Dim light makes
 webcams drop to 15-20 fps and raises sensor noise. Auto-white-balance and auto-exposure fight
 rPPG directly - the camera "corrects" the very brightness changes being measured - so this
-script turns auto-WB off where the driver allows it (`--auto-wb` to keep it, and
-`--manual-exposure` to also lock exposure, which helps but can mis-expose the image).
+script turns auto-WB off where the driver allows it (`--auto-wb` to keep it).
+`--manual-exposure` additionally locks exposure: it lets auto-exposure settle, reads the
+value the driver chose, switches to manual, and checks the image is still as bright - if no
+manual value matches, it reverts to auto rather than leaving you with a black frame.
 
 Keys: q / ESC quit.
 """
@@ -370,7 +372,8 @@ def draw_overlay(frame: np.ndarray, est: LiveEstimator, box: Optional[Box]) -> n
         cv2.putText(canvas, text, (10, y), cv2.FONT_HERSHEY_SIMPLEX, scale, color, 1, cv2.LINE_AA)
 
     if box is None:
-        put("No face detected", 30, (0, 0, 255))
+        dark = frame.mean() < DARK_FRAME_MEAN
+        put("No face detected" + ("  -  image too dark, add light" if dark else ""), 30, (0, 0, 255))
     elif not est.ready():
         put(f"Buffering face... {est.buffered_seconds:.1f} / {WINDOW_SECONDS:.0f} s", 30, (0, 200, 255))
     else:
@@ -385,6 +388,72 @@ def draw_overlay(frame: np.ndarray, est: LiveEstimator, box: Optional[Box]) -> n
         fps_warn = "  (low fps: more light)" if np.isfinite(est.capture_fps) and est.capture_fps < 24 else ""
         put(f"{q}   {est.capture_fps:.1f} fps{fps_warn}{warn}", 84, (200, 200, 200), 0.55)
     return canvas
+
+
+# ==============================================================================
+# EXPOSURE
+# ==============================================================================
+# cv2 exposure-mode constants differ by backend.
+AUTO_EXPOSURE_ON = 0.75 if sys.platform == "win32" else 3.0
+AUTO_EXPOSURE_OFF = 0.25 if sys.platform == "win32" else 1.0
+
+DARK_FRAME_MEAN = 40.0  # 0-255; below this the image is too dark for rPPG
+
+
+def mean_brightness(cap, n: int = 5) -> float:
+    vals = []
+    for _ in range(n):
+        ok, frame = cap.read()
+        if ok:
+            vals.append(float(frame.mean()))
+    return float(np.mean(vals)) if vals else float("nan")
+
+
+def exposure_candidates(current: float) -> List[float]:
+    """
+    Values to try, brightest-first after the driver's own choice. DirectShow reports
+    exposure as log2(seconds) (negative), V4L2 as absolute units (positive), so step
+    additively in the first case and multiplicatively in the second.
+    """
+    if not np.isfinite(current) or current == 0:
+        return []
+    if current < 0:  # log2 scale: +1 doubles the exposure time
+        return [current, current + 1, current + 2, current + 3, current - 1]
+    return [current, current * 1.5, current * 2, current * 3, current / 1.5]
+
+
+def lock_exposure(cap, warmup: float = 1.5, tolerance: float = 0.25) -> Tuple[bool, str]:
+    """
+    Let auto-exposure settle, then switch to manual at a value that keeps roughly the same
+    image brightness. Locking matters for rPPG because auto-gain cancels the very brightness
+    changes being measured - but a blind lock often lands on the driver's minimum exposure
+    and produces a black frame, so verify and fall back to auto if we cannot match.
+    """
+    t0 = time.time()
+    while time.time() - t0 < warmup:
+        cap.read()
+    target = mean_brightness(cap)
+    if not np.isfinite(target) or target <= 0:
+        return False, "could not measure brightness; left on auto"
+
+    current = cap.get(cv2.CAP_PROP_EXPOSURE)
+    candidates = exposure_candidates(current)
+    if not candidates:
+        return False, f"driver reports no usable exposure value ({current}); left on auto"
+
+    if not cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, AUTO_EXPOSURE_OFF):
+        return False, "driver refused manual exposure; left on auto"
+
+    for value in candidates:
+        cap.set(cv2.CAP_PROP_EXPOSURE, value)
+        for _ in range(3):  # let the new setting take effect
+            cap.read()
+        got = mean_brightness(cap)
+        if np.isfinite(got) and got >= DARK_FRAME_MEAN and abs(got - target) <= tolerance * target:
+            return True, f"exposure locked at {value:g} (brightness {got:.0f} vs {target:.0f} on auto)"
+
+    cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, AUTO_EXPOSURE_ON)
+    return False, f"no manual exposure matched auto brightness ({target:.0f}); reverted to auto"
 
 
 # ==============================================================================
@@ -406,13 +475,18 @@ def open_capture(args):
     cap.set(cv2.CAP_PROP_FPS, 30)
     if not args.auto_wb:
         cap.set(cv2.CAP_PROP_AUTO_WB, 0)
-    if args.manual_exposure:
-        cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)  # DSHOW: 0.25 = manual, 0.75 = auto
     print(
         f"Camera {args.camera}: {int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))}x{int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))}"
-        f" @ {cap.get(cv2.CAP_PROP_FPS):.0f} fps requested, auto-WB "
-        f"{'on' if args.auto_wb else 'off'}, exposure {'manual' if args.manual_exposure else 'auto'}"
+        f" @ {cap.get(cv2.CAP_PROP_FPS):.0f} fps requested, auto-WB {'on' if args.auto_wb else 'off'}"
     )
+    if args.manual_exposure:
+        ok, msg = lock_exposure(cap)
+        print(f"  {msg}")
+        if not ok:
+            print("  (rPPG works on auto exposure too - it just has to fight the camera's gain control)")
+    brightness = mean_brightness(cap)
+    if np.isfinite(brightness) and brightness < DARK_FRAME_MEAN:
+        print(f"  WARNING: image is very dark (mean {brightness:.0f}/255). Add light in front of you.")
     return cap
 
 
@@ -441,7 +515,8 @@ def main() -> None:
     p.add_argument("--smooth", type=int, default=7, help="median filter length over recent HR estimates")
     p.add_argument("--threads", type=int, default=4)
     p.add_argument("--auto-wb", action="store_true", help="leave auto white balance on")
-    p.add_argument("--manual-exposure", action="store_true", help="lock exposure (helps rPPG, may mis-expose)")
+    p.add_argument("--manual-exposure", action="store_true",
+                   help="lock exposure after auto settles (verified; falls back to auto if it darkens the image)")
     p.add_argument("--no-display", action="store_true")
     p.add_argument("--log-every", type=float, default=2.0, help="seconds between stdout lines")
     p.add_argument("--simulate-fps", type=float, default=0.0, help="drop frames to emulate a slower camera (testing)")

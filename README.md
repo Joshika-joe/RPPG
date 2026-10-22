@@ -171,8 +171,12 @@ front-on light (a lamp or window facing you, never behind you); sitting still an
 talking; a camera at 25–30 fps (dim light makes webcams drop to 15–20 and adds sensor noise);
 and disabling the camera's own auto-corrections — auto-WB is turned off by default here
 (`--auto-wb` keeps it), and `--manual-exposure` also locks exposure, which helps because
-auto-gain actively cancels the brightness changes being measured, but can mis-expose the
-image. The quality readout and the "weak signal" warning tell you when to trust the number.
+auto-gain actively cancels the brightness changes being measured. Locking is done carefully:
+auto-exposure is allowed to settle, the driver's chosen value is read back and re-applied in
+manual mode, and the resulting brightness is checked — if no manual value matches, it reverts
+to auto rather than leaving a black frame (a blind lock usually lands on the driver's minimum
+exposure). The startup line says which happened, and the quality readout plus the "weak
+signal" and "image too dark" warnings tell you when to trust the number.
 
 ## Models
 
