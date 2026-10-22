@@ -128,10 +128,15 @@ changes HR MAE by < 0.05 bpm and is off by default.
 ## Live webcam demo
 
 ```bash
+python -m src.live --list-cameras        # which index is which camera, and what fps it delivers
 python -m src.live                       # default camera, results/v3_pearson, q / ESC to quit
 python -m src.live --camera 1 --threads 4
 python -m src.live --video DATASET_2/subject3/vid.avi --no-display   # file mode, prints estimates
 ```
+
+`--list-cameras` opens each index in turn and reports its resolution, the frame rate it
+*actually* delivers (drivers routinely advertise 30 and deliver 15) and the image brightness,
+so an external webcam can be told apart from a built-in one without guesswork.
 
 Shows the face box, the live BVP trace, **heart rate** from the last 10 s, a signal-quality
 readout, and an **experimental breathing rate**. Sit still, face the camera in steady light,

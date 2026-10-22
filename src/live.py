@@ -2,6 +2,7 @@
 Live heart-rate (and experimental breathing-rate) estimation from a webcam.
 
     python -m src.live                              # default camera, results/v3_pearson
+    python -m src.live --list-cameras                # which index is which camera
     python -m src.live --camera 1 --threads 4
     python -m src.live --video DATASET_2/subject3/vid.avi --no-display   # file mode (testing)
 
@@ -459,6 +460,57 @@ def lock_exposure(cap, warmup: float = 1.5, tolerance: float = 0.25) -> Tuple[bo
 # ==============================================================================
 # CAPTURE
 # ==============================================================================
+def measure_fps(cap, seconds: float = 1.2) -> float:
+    """Frame rate actually delivered, which is often far below what the driver advertises."""
+    t0 = time.perf_counter()
+    n = 0
+    while time.perf_counter() - t0 < seconds:
+        ok, _ = cap.read()
+        if not ok:
+            break
+        n += 1
+    elapsed = time.perf_counter() - t0
+    return n / elapsed if elapsed > 0 and n > 1 else float("nan")
+
+
+def probe_cameras(max_index: int = 5, width: int = 640, height: int = 480) -> None:
+    """Prints every camera index that opens, with what it actually delivers."""
+    backend = cv2.CAP_DSHOW if sys.platform == "win32" else cv2.CAP_ANY
+    print(f"Probing camera indices 0-{max_index} (disabled devices will not appear)...\n")
+    print(f"  {'index':>5}  {'resolution':>11}  {'fps':>6}  {'brightness':>10}   verdict")
+    found = 0
+    for i in range(max_index + 1):
+        cap = cv2.VideoCapture(i, backend)
+        if not cap.isOpened():
+            cap.release()
+            continue
+        cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+        cap.set(cv2.CAP_PROP_FPS, 30)
+        ok, frame = cap.read()
+        if not ok or frame is None:
+            cap.release()
+            continue
+        found += 1
+        fps = measure_fps(cap)
+        bright = mean_brightness(cap)
+        res = f"{frame.shape[1]}x{frame.shape[0]}"
+        notes = []
+        if np.isfinite(fps) and fps >= 24:
+            notes.append("good fps")
+        elif np.isfinite(fps):
+            notes.append("low fps - needs more light")
+        if np.isfinite(bright) and bright < DARK_FRAME_MEAN:
+            notes.append("too dark")
+        print(f"  {i:>5}  {res:>11}  {fps:>6.1f}  {bright:>10.0f}   {', '.join(notes) or 'ok'}")
+        cap.release()
+    if found == 0:
+        print("  no cameras opened - check Settings > Bluetooth & devices > Cameras")
+    else:
+        print(f"\nRun the one you want with:  python -m src.live --camera <index>")
+
+
 def open_capture(args):
     if args.video:
         cap = cv2.VideoCapture(args.video)
@@ -470,15 +522,19 @@ def open_capture(args):
     if not cap.isOpened():
         raise SystemExit(f"Could not open camera {args.camera}. Try --camera 1.")
     cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))  # raw YUY2 is often capped at 5-10 fps
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, args.width)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, args.height)
     cap.set(cv2.CAP_PROP_FPS, 30)
     if not args.auto_wb:
         cap.set(cv2.CAP_PROP_AUTO_WB, 0)
+    measured = measure_fps(cap)
     print(
         f"Camera {args.camera}: {int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))}x{int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))}"
-        f" @ {cap.get(cv2.CAP_PROP_FPS):.0f} fps requested, auto-WB {'on' if args.auto_wb else 'off'}"
+        f" @ {measured:.1f} fps measured, auto-WB {'on' if args.auto_wb else 'off'}"
     )
+    if np.isfinite(measured) and measured < 24:
+        print("  Low frame rate. More light on your face usually fixes this (the sensor shortens")
+        print("  its exposure when there is more light, so it can deliver frames faster).")
     if args.manual_exposure:
         ok, msg = lock_exposure(cap)
         print(f"  {msg}")
@@ -506,6 +562,9 @@ def main() -> None:
     p = argparse.ArgumentParser(description="Live rPPG heart-rate estimation")
     p.add_argument("--run", default="results/v3_pearson")
     p.add_argument("--camera", type=int, default=0)
+    p.add_argument("--list-cameras", action="store_true", help="probe camera indices and exit")
+    p.add_argument("--width", type=int, default=640)
+    p.add_argument("--height", type=int, default=480)
     p.add_argument("--video", help="read a video file instead of the camera (uses its fps)")
     p.add_argument("--update-every", type=float, default=0.5, help="seconds between model updates")
     p.add_argument("--hr-seconds", type=float, default=10.0)
@@ -521,6 +580,10 @@ def main() -> None:
     p.add_argument("--log-every", type=float, default=2.0, help="seconds between stdout lines")
     p.add_argument("--simulate-fps", type=float, default=0.0, help="drop frames to emulate a slower camera (testing)")
     args = p.parse_args()
+
+    if args.list_cameras:
+        probe_cameras(width=args.width, height=args.height)
+        return
 
     torch.set_num_threads(args.threads)
     device = config.get_device()
