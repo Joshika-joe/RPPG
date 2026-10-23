@@ -1,0 +1,812 @@
+{
+  "splits": {
+    "sizes": {
+      "train": 29,
+      "val": 6,
+      "test": 7
+    },
+    "subject_overlap": {},
+    "window_source_overlap": {},
+    "preprocessed_but_unused": [],
+    "listed_but_missing": [],
+    "findings": [],
+    "clean": true
+  },
+  "subjects": [
+    {
+      "subject": "subject13",
+      "split": "train",
+      "n_frames": 2018,
+      "raw_gt_samples": 2018,
+      "fps": 29.78,
+      "timestamp_jitter": 0.2471,
+      "max_frame_gap_ms": 163.0,
+      "oximeter_hr_range": [
+        94.0,
+        119.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.001,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 163 ms (> 3 frames)"
+      ]
+    },
+    {
+      "subject": "subject5",
+      "split": "train",
+      "n_frames": 1550,
+      "raw_gt_samples": 1550,
+      "fps": 29.58,
+      "timestamp_jitter": 0.2729,
+      "max_frame_gap_ms": 152.0,
+      "oximeter_hr_range": [
+        93.0,
+        102.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.0013,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 152 ms (> 3 frames)",
+        "non-monotonic timestamps"
+      ]
+    },
+    {
+      "subject": "subject14",
+      "split": "train",
+      "n_frames": 1993,
+      "raw_gt_samples": 1993,
+      "fps": 29.35,
+      "timestamp_jitter": 0.307,
+      "max_frame_gap_ms": 58.0,
+      "oximeter_hr_range": [
+        72.0,
+        98.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.0015,
+      "harmonic_ambiguous_segments": [],
+      "issues": []
+    },
+    {
+      "subject": "subject34",
+      "split": "train",
+      "n_frames": 2035,
+      "raw_gt_samples": 2035,
+      "fps": 29.97,
+      "timestamp_jitter": 0.2261,
+      "max_frame_gap_ms": 46.0,
+      "oximeter_hr_range": [
+        112.0,
+        122.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.001,
+      "harmonic_ambiguous_segments": [],
+      "issues": []
+    },
+    {
+      "subject": "subject45",
+      "split": "train",
+      "n_frames": 2032,
+      "raw_gt_samples": 2032,
+      "fps": 29.94,
+      "timestamp_jitter": 0.2359,
+      "max_frame_gap_ms": 126.0,
+      "oximeter_hr_range": [
+        96.0,
+        118.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.001,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 126 ms (> 3 frames)"
+      ]
+    },
+    {
+      "subject": "subject24",
+      "split": "train",
+      "n_frames": 2009,
+      "raw_gt_samples": 2009,
+      "fps": 29.35,
+      "timestamp_jitter": 0.6914,
+      "max_frame_gap_ms": 952.0,
+      "oximeter_hr_range": [
+        1.0,
+        127.0
+      ],
+      "oximeter_implausible_frac": 0.1648,
+      "bvp_clipped_frac": 0.0015,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "oximeter HR implausible in 16% of samples (min 1, max 127)",
+        "largest frame interval 952 ms (> 3 frames)"
+      ]
+    },
+    {
+      "subject": "subject47",
+      "split": "train",
+      "n_frames": 2023,
+      "raw_gt_samples": 2023,
+      "fps": 29.78,
+      "timestamp_jitter": 0.2833,
+      "max_frame_gap_ms": 308.0,
+      "oximeter_hr_range": [
+        103.0,
+        120.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.001,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 308 ms (> 3 frames)"
+      ]
+    },
+    {
+      "subject": "subject33",
+      "split": "train",
+      "n_frames": 1999,
+      "raw_gt_samples": 1999,
+      "fps": 29.19,
+      "timestamp_jitter": 0.5216,
+      "max_frame_gap_ms": 608.0,
+      "oximeter_hr_range": [
+        112.0,
+        123.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.001,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 608 ms (> 3 frames)"
+      ]
+    },
+    {
+      "subject": "subject8",
+      "split": "train",
+      "n_frames": 2022,
+      "raw_gt_samples": 2022,
+      "fps": 29.88,
+      "timestamp_jitter": 0.2365,
+      "max_frame_gap_ms": 161.0,
+      "oximeter_hr_range": [
+        97.0,
+        118.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.001,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 161 ms (> 3 frames)"
+      ]
+    },
+    {
+      "subject": "subject41",
+      "split": "train",
+      "n_frames": 2037,
+      "raw_gt_samples": 2037,
+      "fps": 29.75,
+      "timestamp_jitter": 0.2548,
+      "max_frame_gap_ms": 133.0,
+      "oximeter_hr_range": [
+        95.0,
+        108.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.001,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 133 ms (> 3 frames)"
+      ]
+    },
+    {
+      "subject": "subject30",
+      "split": "train",
+      "n_frames": 2028,
+      "raw_gt_samples": 2028,
+      "fps": 29.78,
+      "timestamp_jitter": 0.2811,
+      "max_frame_gap_ms": 202.0,
+      "oximeter_hr_range": [
+        68.0,
+        106.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.0015,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 202 ms (> 3 frames)"
+      ]
+    },
+    {
+      "subject": "subject15",
+      "split": "train",
+      "n_frames": 2020,
+      "raw_gt_samples": 2020,
+      "fps": 29.57,
+      "timestamp_jitter": 0.6,
+      "max_frame_gap_ms": 878.0,
+      "oximeter_hr_range": [
+        108.0,
+        123.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.0054,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 878 ms (> 3 frames)"
+      ]
+    },
+    {
+      "subject": "subject37",
+      "split": "train",
+      "n_frames": 2032,
+      "raw_gt_samples": 2032,
+      "fps": 29.8,
+      "timestamp_jitter": 0.2887,
+      "max_frame_gap_ms": 141.0,
+      "oximeter_hr_range": [
+        56.0,
+        67.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.001,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 141 ms (> 3 frames)",
+        "non-monotonic timestamps"
+      ]
+    },
+    {
+      "subject": "subject27",
+      "split": "train",
+      "n_frames": 1431,
+      "raw_gt_samples": 1431,
+      "fps": 23.37,
+      "timestamp_jitter": 0.0194,
+      "max_frame_gap_ms": 51.0,
+      "oximeter_hr_range": [
+        83.0,
+        99.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.0042,
+      "harmonic_ambiguous_segments": [],
+      "issues": []
+    },
+    {
+      "subject": "subject16",
+      "split": "train",
+      "n_frames": 2050,
+      "raw_gt_samples": 2050,
+      "fps": 29.93,
+      "timestamp_jitter": 0.2118,
+      "max_frame_gap_ms": 48.0,
+      "oximeter_hr_range": [
+        86.0,
+        98.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.001,
+      "harmonic_ambiguous_segments": [],
+      "issues": []
+    },
+    {
+      "subject": "subject32",
+      "split": "train",
+      "n_frames": 2033,
+      "raw_gt_samples": 2033,
+      "fps": 29.84,
+      "timestamp_jitter": 0.2511,
+      "max_frame_gap_ms": 150.0,
+      "oximeter_hr_range": [
+        92.0,
+        118.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.001,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 150 ms (> 3 frames)"
+      ]
+    },
+    {
+      "subject": "subject43",
+      "split": "train",
+      "n_frames": 2009,
+      "raw_gt_samples": 2009,
+      "fps": 29.34,
+      "timestamp_jitter": 0.2989,
+      "max_frame_gap_ms": 147.0,
+      "oximeter_hr_range": [
+        92.0,
+        102.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.002,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 147 ms (> 3 frames)"
+      ]
+    },
+    {
+      "subject": "subject44",
+      "split": "train",
+      "n_frames": 2017,
+      "raw_gt_samples": 2017,
+      "fps": 29.61,
+      "timestamp_jitter": 0.3216,
+      "max_frame_gap_ms": 211.0,
+      "oximeter_hr_range": [
+        77.0,
+        87.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.001,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 211 ms (> 3 frames)"
+      ]
+    },
+    {
+      "subject": "subject40",
+      "split": "train",
+      "n_frames": 2028,
+      "raw_gt_samples": 2028,
+      "fps": 29.81,
+      "timestamp_jitter": 0.2193,
+      "max_frame_gap_ms": 129.0,
+      "oximeter_hr_range": [
+        80.0,
+        92.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.001,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 129 ms (> 3 frames)"
+      ]
+    },
+    {
+      "subject": "subject17",
+      "split": "train",
+      "n_frames": 2046,
+      "raw_gt_samples": 2046,
+      "fps": 29.97,
+      "timestamp_jitter": 0.1785,
+      "max_frame_gap_ms": 94.0,
+      "oximeter_hr_range": [
+        67.0,
+        91.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.001,
+      "harmonic_ambiguous_segments": [],
+      "issues": []
+    },
+    {
+      "subject": "subject31",
+      "split": "train",
+      "n_frames": 2027,
+      "raw_gt_samples": 2027,
+      "fps": 29.6,
+      "timestamp_jitter": 0.3083,
+      "max_frame_gap_ms": 139.0,
+      "oximeter_hr_range": [
+        75.0,
+        82.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.001,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 139 ms (> 3 frames)"
+      ]
+    },
+    {
+      "subject": "subject26",
+      "split": "train",
+      "n_frames": 1485,
+      "raw_gt_samples": 1485,
+      "fps": 23.35,
+      "timestamp_jitter": 0.0186,
+      "max_frame_gap_ms": 50.0,
+      "oximeter_hr_range": [
+        67.0,
+        79.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.0034,
+      "harmonic_ambiguous_segments": [],
+      "issues": []
+    },
+    {
+      "subject": "subject36",
+      "split": "train",
+      "n_frames": 2052,
+      "raw_gt_samples": 2052,
+      "fps": 29.91,
+      "timestamp_jitter": 0.2659,
+      "max_frame_gap_ms": 274.0,
+      "oximeter_hr_range": [
+        101.0,
+        127.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.001,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 274 ms (> 3 frames)"
+      ]
+    },
+    {
+      "subject": "subject46",
+      "split": "train",
+      "n_frames": 1991,
+      "raw_gt_samples": 1991,
+      "fps": 29.22,
+      "timestamp_jitter": 0.4101,
+      "max_frame_gap_ms": 498.0,
+      "oximeter_hr_range": [
+        87.0,
+        105.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.001,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 498 ms (> 3 frames)",
+        "non-monotonic timestamps"
+      ]
+    },
+    {
+      "subject": "subject38",
+      "split": "train",
+      "n_frames": 2050,
+      "raw_gt_samples": 2050,
+      "fps": 29.91,
+      "timestamp_jitter": 0.2408,
+      "max_frame_gap_ms": 183.0,
+      "oximeter_hr_range": [
+        103.0,
+        114.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.0024,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 183 ms (> 3 frames)"
+      ]
+    },
+    {
+      "subject": "subject25",
+      "split": "train",
+      "n_frames": 1448,
+      "raw_gt_samples": 1448,
+      "fps": 23.18,
+      "timestamp_jitter": 0.3539,
+      "max_frame_gap_ms": 580.0,
+      "oximeter_hr_range": [
+        87.0,
+        97.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.0014,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 580 ms (> 3 frames)"
+      ]
+    },
+    {
+      "subject": "subject22",
+      "split": "train",
+      "n_frames": 2032,
+      "raw_gt_samples": 2032,
+      "fps": 29.74,
+      "timestamp_jitter": 0.2905,
+      "max_frame_gap_ms": 253.0,
+      "oximeter_hr_range": [
+        89.0,
+        111.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.001,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 253 ms (> 3 frames)"
+      ]
+    },
+    {
+      "subject": "subject49",
+      "split": "train",
+      "n_frames": 2034,
+      "raw_gt_samples": 2034,
+      "fps": 29.76,
+      "timestamp_jitter": 0.249,
+      "max_frame_gap_ms": 209.0,
+      "oximeter_hr_range": [
+        84.0,
+        94.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.001,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 209 ms (> 3 frames)",
+        "non-monotonic timestamps"
+      ]
+    },
+    {
+      "subject": "subject42",
+      "split": "train",
+      "n_frames": 2042,
+      "raw_gt_samples": 2042,
+      "fps": 29.94,
+      "timestamp_jitter": 0.201,
+      "max_frame_gap_ms": 130.0,
+      "oximeter_hr_range": [
+        81.0,
+        101.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.001,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 130 ms (> 3 frames)"
+      ]
+    },
+    {
+      "subject": "subject39",
+      "split": "val",
+      "n_frames": 2037,
+      "raw_gt_samples": 2037,
+      "fps": 29.71,
+      "timestamp_jitter": 0.2866,
+      "max_frame_gap_ms": 51.0,
+      "oximeter_hr_range": [
+        82.0,
+        88.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.0015,
+      "harmonic_ambiguous_segments": [],
+      "issues": []
+    },
+    {
+      "subject": "subject1",
+      "split": "val",
+      "n_frames": 1547,
+      "raw_gt_samples": 1547,
+      "fps": 29.34,
+      "timestamp_jitter": 0.3232,
+      "max_frame_gap_ms": 223.0,
+      "oximeter_hr_range": [
+        97.0,
+        113.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.0103,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 223 ms (> 3 frames)",
+        "non-monotonic timestamps"
+      ]
+    },
+    {
+      "subject": "subject4",
+      "split": "val",
+      "n_frames": 1368,
+      "raw_gt_samples": 1368,
+      "fps": 29.57,
+      "timestamp_jitter": 0.298,
+      "max_frame_gap_ms": 157.0,
+      "oximeter_hr_range": [
+        106.0,
+        116.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.0044,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 157 ms (> 3 frames)",
+        "non-monotonic timestamps"
+      ]
+    },
+    {
+      "subject": "subject35",
+      "split": "val",
+      "n_frames": 2051,
+      "raw_gt_samples": 2051,
+      "fps": 29.91,
+      "timestamp_jitter": 0.2573,
+      "max_frame_gap_ms": 115.0,
+      "oximeter_hr_range": [
+        77.0,
+        120.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.001,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 115 ms (> 3 frames)"
+      ]
+    },
+    {
+      "subject": "subject9",
+      "split": "val",
+      "n_frames": 2016,
+      "raw_gt_samples": 2016,
+      "fps": 29.52,
+      "timestamp_jitter": 0.5271,
+      "max_frame_gap_ms": 746.0,
+      "oximeter_hr_range": [
+        99.0,
+        120.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.001,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 746 ms (> 3 frames)",
+        "non-monotonic timestamps"
+      ]
+    },
+    {
+      "subject": "subject10",
+      "split": "val",
+      "n_frames": 2024,
+      "raw_gt_samples": 2024,
+      "fps": 29.87,
+      "timestamp_jitter": 0.2438,
+      "max_frame_gap_ms": 116.0,
+      "oximeter_hr_range": [
+        91.0,
+        120.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.001,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 116 ms (> 3 frames)",
+        "non-monotonic timestamps"
+      ]
+    },
+    {
+      "subject": "subject12",
+      "split": "test",
+      "n_frames": 1989,
+      "raw_gt_samples": 1989,
+      "fps": 29.07,
+      "timestamp_jitter": 0.2866,
+      "max_frame_gap_ms": 112.0,
+      "oximeter_hr_range": [
+        59.0,
+        69.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.0015,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 112 ms (> 3 frames)"
+      ]
+    },
+    {
+      "subject": "subject18",
+      "split": "test",
+      "n_frames": 2034,
+      "raw_gt_samples": 2034,
+      "fps": 29.74,
+      "timestamp_jitter": 0.3415,
+      "max_frame_gap_ms": 424.0,
+      "oximeter_hr_range": [
+        1.0,
+        127.0
+      ],
+      "oximeter_implausible_frac": 0.1229,
+      "bvp_clipped_frac": 0.001,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "oximeter HR implausible in 12% of samples (min 1, max 127)",
+        "largest frame interval 424 ms (> 3 frames)",
+        "non-monotonic timestamps"
+      ]
+    },
+    {
+      "subject": "subject20",
+      "split": "test",
+      "n_frames": 2016,
+      "raw_gt_samples": 2016,
+      "fps": 29.49,
+      "timestamp_jitter": 0.3058,
+      "max_frame_gap_ms": 340.0,
+      "oximeter_hr_range": [
+        1.0,
+        127.0
+      ],
+      "oximeter_implausible_frac": 0.5109,
+      "bvp_clipped_frac": 0.001,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "oximeter HR implausible in 51% of samples (min 1, max 127)",
+        "largest frame interval 340 ms (> 3 frames)"
+      ]
+    },
+    {
+      "subject": "subject23",
+      "split": "test",
+      "n_frames": 1958,
+      "raw_gt_samples": 1958,
+      "fps": 28.93,
+      "timestamp_jitter": 0.7151,
+      "max_frame_gap_ms": 1005.0,
+      "oximeter_hr_range": [
+        58.0,
+        71.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.001,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 1005 ms (> 3 frames)"
+      ]
+    },
+    {
+      "subject": "subject3",
+      "split": "test",
+      "n_frames": 1801,
+      "raw_gt_samples": 1801,
+      "fps": 29.54,
+      "timestamp_jitter": 0.3336,
+      "max_frame_gap_ms": 239.0,
+      "oximeter_hr_range": [
+        92.0,
+        108.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.0017,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "largest frame interval 239 ms (> 3 frames)"
+      ]
+    },
+    {
+      "subject": "subject11",
+      "split": "test",
+      "n_frames": 2031,
+      "raw_gt_samples": 2031,
+      "fps": 29.69,
+      "timestamp_jitter": 0.261,
+      "max_frame_gap_ms": 135.0,
+      "oximeter_hr_range": [
+        1.0,
+        127.0
+      ],
+      "oximeter_implausible_frac": 0.2058,
+      "bvp_clipped_frac": 0.0015,
+      "harmonic_ambiguous_segments": [],
+      "issues": [
+        "oximeter HR implausible in 21% of samples (min 1, max 127)",
+        "largest frame interval 135 ms (> 3 frames)"
+      ]
+    },
+    {
+      "subject": "subject48",
+      "split": "test",
+      "n_frames": 1956,
+      "raw_gt_samples": 1956,
+      "fps": 28.74,
+      "timestamp_jitter": 0.3072,
+      "max_frame_gap_ms": 90.0,
+      "oximeter_hr_range": [
+        85.0,
+        89.0
+      ],
+      "oximeter_implausible_frac": 0.0,
+      "bvp_clipped_frac": 0.001,
+      "harmonic_ambiguous_segments": [],
+      "issues": []
+    }
+  ]
+}
