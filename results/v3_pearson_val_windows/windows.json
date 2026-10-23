@@ -1,0 +1,526 @@
+{
+  "run": "results/v3_pearson",
+  "split": "val",
+  "method": "fft",
+  "stride": 30,
+  "model_input_frames": 150,
+  "gate": {
+    "min_snr_db": -1.9,
+    "min_peak_margin_db": 3.2,
+    "max_disagreement_bpm": 5.7
+  },
+  "hop_seconds": 1.0,
+  "continuous_inference_realtime_factor": 0.27217865786674006,
+  "protocols": {
+    "sliding": [
+      {
+        "duration_s": 5.0,
+        "n_estimates": 284,
+        "n_subjects": 6,
+        "mae": 0.9650684272812288,
+        "rmse": 1.8149534094818431,
+        "median_abs_err": 0.0,
+        "within_5bpm": 0.9894366197183099,
+        "pearson_mean": 0.9058142325408022,
+        "accepted_fraction": 0.9471830985915493,
+        "mae_accepted": 0.8294560261226945,
+        "rmse_accepted": 1.313349648885447,
+        "mae_rejected": 3.3970508213909416,
+        "max_err_rejected": 17.97992306382841,
+        "rejection_reasons": {
+          "disagreement": 10,
+          "snr": 6
+        },
+        "stability_bpm": 2.127556576052619,
+        "stability_p95_bpm": 6.234801802153388,
+        "first_estimate_latency_s": 5.0,
+        "update_interval_s": 1.0,
+        "freq_resolution_bpm": 12.0,
+        "seconds_per_estimate": 0.0020331394379879807,
+        "mean_ref_spread_bpm": 7.840098174088649,
+        "per_subject": {
+          "subject39": {
+            "n": 54,
+            "mae": 0.9137530567579565,
+            "rmse": 1.4243273799779748
+          },
+          "subject1": {
+            "n": 39,
+            "mae": 1.1131414441192722,
+            "rmse": 1.6080180339671506
+          },
+          "subject4": {
+            "n": 31,
+            "mae": 2.17499069320505,
+            "rmse": 4.000569991233584
+          },
+          "subject35": {
+            "n": 54,
+            "mae": 0.664772875856651,
+            "rmse": 1.1148580050101253
+          },
+          "subject9": {
+            "n": 53,
+            "mae": 0.7056639392623407,
+            "rmse": 1.3157936289955539
+          },
+          "subject10": {
+            "n": 53,
+            "mae": 0.7660682338824139,
+            "rmse": 1.1500652247963423
+          }
+        },
+        "subject_level_mae": 1.0563983738472806,
+        "worst_subject_mae": 2.17499069320505
+      },
+      {
+        "duration_s": 8.0,
+        "n_estimates": 284,
+        "n_subjects": 6,
+        "mae": 0.7717965495092494,
+        "rmse": 2.1878508632297726,
+        "median_abs_err": 0.0,
+        "within_5bpm": 0.9894366197183099,
+        "pearson_mean": 0.9050357335470092,
+        "accepted_fraction": 0.9330985915492958,
+        "mae_accepted": 0.5128292523958435,
+        "rmse_accepted": 0.8363626501427834,
+        "mae_rejected": 4.38370885135412,
+        "max_err_rejected": 24.327265805067412,
+        "rejection_reasons": {
+          "disagreement": 14,
+          "snr": 11,
+          "margin": 7
+        },
+        "stability_bpm": 1.4829124332522372,
+        "stability_p95_bpm": 3.7445552051534614,
+        "first_estimate_latency_s": 8.0,
+        "update_interval_s": 1.0,
+        "freq_resolution_bpm": 7.5,
+        "seconds_per_estimate": 0.002461360569085768,
+        "mean_ref_spread_bpm": 11.133982008620059,
+        "per_subject": {
+          "subject39": {
+            "n": 54,
+            "mae": 0.4853804116111778,
+            "rmse": 0.7427806007438346
+          },
+          "subject1": {
+            "n": 39,
+            "mae": 0.816358171343819,
+            "rmse": 1.1419527308990607
+          },
+          "subject4": {
+            "n": 31,
+            "mae": 2.7164440725261385,
+            "rmse": 6.147055895329359
+          },
+          "subject35": {
+            "n": 54,
+            "mae": 0.5041426098285265,
+            "rmse": 0.8376961415949619
+          },
+          "subject9": {
+            "n": 53,
+            "mae": 0.5487434158195962,
+            "rmse": 0.9381742270464063
+          },
+          "subject10": {
+            "n": 53,
+            "mae": 0.3891479421457539,
+            "rmse": 0.6566238696020824
+          }
+        },
+        "subject_level_mae": 0.9100361038791687,
+        "worst_subject_mae": 2.7164440725261385
+      },
+      {
+        "duration_s": 10.0,
+        "n_estimates": 284,
+        "n_subjects": 6,
+        "mae": 0.5862353010854542,
+        "rmse": 1.530104773215413,
+        "median_abs_err": 0.749163460992861,
+        "within_5bpm": 0.9929577464788732,
+        "pearson_mean": 0.9045660739213648,
+        "accepted_fraction": 0.9225352112676056,
+        "mae_accepted": 0.4352413493092948,
+        "rmse_accepted": 0.65552420572803,
+        "mae_rejected": 2.3844359995106257,
+        "max_err_rejected": 16.481596141842715,
+        "rejection_reasons": {
+          "margin": 14,
+          "snr": 16,
+          "disagreement": 14
+        },
+        "stability_bpm": 1.2598472410692174,
+        "stability_p95_bpm": 3.0015840806394882,
+        "first_estimate_latency_s": 10.0,
+        "update_interval_s": 1.0,
+        "freq_resolution_bpm": 6.0,
+        "seconds_per_estimate": 0.0023943017709108306,
+        "mean_ref_spread_bpm": 12.703636094546363,
+        "per_subject": {
+          "subject39": {
+            "n": 54,
+            "mae": 0.34728396453661764,
+            "rmse": 0.5497188140422453
+          },
+          "subject1": {
+            "n": 39,
+            "mae": 0.6740158561837928,
+            "rmse": 0.9545631114655748
+          },
+          "subject4": {
+            "n": 31,
+            "mae": 1.6674928647905396,
+            "rmse": 4.205745823111408
+          },
+          "subject35": {
+            "n": 54,
+            "mae": 0.4307683769138001,
+            "rmse": 0.6849916173742525
+          },
+          "subject9": {
+            "n": 53,
+            "mae": 0.43899473265567707,
+            "rmse": 0.6438250256283206
+          },
+          "subject10": {
+            "n": 53,
+            "mae": 0.4383090762173756,
+            "rmse": 0.5731094264035291
+          }
+        },
+        "subject_level_mae": 0.6661441452163005,
+        "worst_subject_mae": 1.6674928647905396
+      },
+      {
+        "duration_s": 15.0,
+        "n_estimates": 284,
+        "n_subjects": 6,
+        "mae": 0.55426243381205,
+        "rmse": 1.8949233446417426,
+        "median_abs_err": 0.49944230732857875,
+        "within_5bpm": 0.9859154929577465,
+        "pearson_mean": 0.9044028969717698,
+        "accepted_fraction": 0.8802816901408451,
+        "mae_accepted": 0.3519131771677123,
+        "rmse_accepted": 0.5812766384901767,
+        "mae_rejected": 2.0421246150204153,
+        "max_err_rejected": 20.477134600471246,
+        "rejection_reasons": {
+          "margin": 27,
+          "snr": 17,
+          "disagreement": 15
+        },
+        "stability_bpm": 0.9634577127954361,
+        "stability_p95_bpm": 2.497841288218184,
+        "first_estimate_latency_s": 15.0,
+        "update_interval_s": 1.0,
+        "freq_resolution_bpm": 4.0,
+        "seconds_per_estimate": 0.0033899281685516027,
+        "mean_ref_spread_bpm": 15.730913817930952,
+        "per_subject": {
+          "subject39": {
+            "n": 54,
+            "mae": 0.1942609943331735,
+            "rmse": 0.3260071390499528
+          },
+          "subject1": {
+            "n": 39,
+            "mae": 0.5514237514324415,
+            "rmse": 0.8662480047736629
+          },
+          "subject4": {
+            "n": 31,
+            "mae": 1.9333250606267087,
+            "rmse": 5.1091058933910265
+          },
+          "subject35": {
+            "n": 54,
+            "mae": 0.5552111992121259,
+            "rmse": 1.6348118101433005
+          },
+          "subject9": {
+            "n": 53,
+            "mae": 0.25461246964264633,
+            "rmse": 0.460532301649169
+          },
+          "subject10": {
+            "n": 53,
+            "mae": 0.415206956128728,
+            "rmse": 0.6144617771883814
+          }
+        },
+        "subject_level_mae": 0.6506734052293041,
+        "worst_subject_mae": 1.9333250606267087
+      }
+    ],
+    "blocks": [
+      {
+        "duration_s": 5.0,
+        "n_estimates": 71,
+        "n_subjects": 6,
+        "mae": 0.9913398082485336,
+        "rmse": 1.4108584699625302,
+        "median_abs_err": 1.4952322746948425,
+        "within_5bpm": 1.0,
+        "pearson_mean": 0.9029634552942195,
+        "accepted_fraction": 0.9577464788732394,
+        "mae_accepted": 0.9250120252703576,
+        "rmse_accepted": 1.3348609807767924,
+        "mae_rejected": 2.4947695557538574,
+        "max_err_rejected": 2.9939666428035565,
+        "rejection_reasons": {
+          "snr": 1,
+          "disagreement": 2
+        },
+        "stability_bpm": 5.852829993381288,
+        "stability_p95_bpm": 11.982904382686343,
+        "first_estimate_latency_s": 5.0,
+        "update_interval_s": 1.0,
+        "freq_resolution_bpm": 12.0,
+        "seconds_per_estimate": 0.0020825633595527057,
+        "mean_ref_spread_bpm": 7.810666687957353,
+        "per_subject": {
+          "subject39": {
+            "n": 13,
+            "mae": 1.0351608055579657,
+            "rmse": 1.3754136471001162
+          },
+          "subject1": {
+            "n": 10,
+            "mae": 1.3472849892616012,
+            "rmse": 1.7068235948455925
+          },
+          "subject4": {
+            "n": 9,
+            "mae": 1.3318461528761736,
+            "rmse": 1.579375251008074
+          },
+          "subject35": {
+            "n": 13,
+            "mae": 0.8053979072878656,
+            "rmse": 1.244530050804768
+          },
+          "subject9": {
+            "n": 13,
+            "mae": 0.8055425275887012,
+            "rmse": 1.2447535233376834
+          },
+          "subject10": {
+            "n": 13,
+            "mae": 0.8097188454996456,
+            "rmse": 1.3832612975839702
+          }
+        },
+        "subject_level_mae": 1.0224918713453255,
+        "worst_subject_mae": 1.3472849892616012
+      },
+      {
+        "duration_s": 8.0,
+        "n_estimates": 43,
+        "n_subjects": 6,
+        "mae": 0.5883814068155546,
+        "rmse": 0.845499482442884,
+        "median_abs_err": 0.9356640694256697,
+        "within_5bpm": 1.0,
+        "pearson_mean": 0.9012092254882635,
+        "accepted_fraction": 0.8837209302325582,
+        "mae_accepted": 0.4932426719533403,
+        "rmse_accepted": 0.7449077161233686,
+        "mae_rejected": 1.3114357917683832,
+        "max_err_rejected": 1.8763484540928062,
+        "rejection_reasons": {
+          "disagreement": 3,
+          "snr": 4,
+          "margin": 1
+        },
+        "stability_bpm": 6.18144105571984,
+        "stability_p95_bpm": 13.688809178967025,
+        "first_estimate_latency_s": 8.0,
+        "update_interval_s": 1.0,
+        "freq_resolution_bpm": 7.5,
+        "seconds_per_estimate": 0.002444674390866313,
+        "mean_ref_spread_bpm": 10.544556570741705,
+        "per_subject": {
+          "subject39": {
+            "n": 8,
+            "mae": 0.46804539691077984,
+            "rmse": 0.6619161481175232
+          },
+          "subject1": {
+            "n": 6,
+            "mae": 0.6242738957335092,
+            "rmse": 0.764576252143263
+          },
+          "subject4": {
+            "n": 5,
+            "mae": 1.1227968833108093,
+            "rmse": 1.183531833666819
+          },
+          "subject35": {
+            "n": 8,
+            "mae": 0.5867176924728543,
+            "rmse": 0.8781186351968046
+          },
+          "subject9": {
+            "n": 8,
+            "mae": 0.46908711352320154,
+            "rmse": 0.8124827137980148
+          },
+          "subject10": {
+            "n": 8,
+            "mae": 0.46874638485738274,
+            "rmse": 0.8118925544372235
+          }
+        },
+        "subject_level_mae": 0.6232778944680896,
+        "worst_subject_mae": 1.1227968833108093
+      },
+      {
+        "duration_s": 10.0,
+        "n_estimates": 33,
+        "n_subjects": 6,
+        "mae": 0.8631976974106598,
+        "rmse": 3.0530484510149356,
+        "median_abs_err": 0.0,
+        "within_5bpm": 0.9696969696969697,
+        "pearson_mean": 0.902635521960981,
+        "accepted_fraction": 0.9393939393939394,
+        "mae_accepted": 0.36305691650697447,
+        "rmse_accepted": 0.5874324496337815,
+        "mae_rejected": 8.615379801417781,
+        "max_err_rejected": 17.230759602835562,
+        "rejection_reasons": {
+          "snr": 2,
+          "margin": 1,
+          "disagreement": 2
+        },
+        "stability_bpm": 6.779237660019486,
+        "stability_p95_bpm": 16.28564201998833,
+        "first_estimate_latency_s": 10.0,
+        "update_interval_s": 1.0,
+        "freq_resolution_bpm": 6.0,
+        "seconds_per_estimate": 0.0023858758310476937,
+        "mean_ref_spread_bpm": 11.91373779923629,
+        "per_subject": {
+          "subject39": {
+            "n": 6,
+            "mae": 0.5000889089327293,
+            "rmse": 0.6124813264551755
+          },
+          "subject1": {
+            "n": 5,
+            "mae": 0.4506277438485995,
+            "rmse": 0.5817579157548826
+          },
+          "subject4": {
+            "n": 4,
+            "mae": 4.494980765957102,
+            "rmse": 8.623519037811604
+          },
+          "subject35": {
+            "n": 6,
+            "mae": 0.5002471473837696,
+            "rmse": 0.7503707210756522
+          },
+          "subject9": {
+            "n": 6,
+            "mae": 0.25017979387904177,
+            "rmse": 0.6128128389583225
+          },
+          "subject10": {
+            "n": 6,
+            "mae": 0.1248945217178535,
+            "rmse": 0.305927849877693
+          }
+        },
+        "subject_level_mae": 1.0535031469531826,
+        "worst_subject_mae": 4.494980765957102
+      },
+      {
+        "duration_s": 15.0,
+        "n_estimates": 22,
+        "n_subjects": 6,
+        "mae": 0.40902656086372763,
+        "rmse": 0.6029608951855632,
+        "median_abs_err": 0.4994852892355013,
+        "within_5bpm": 1.0,
+        "pearson_mean": 0.9016406617381356,
+        "accepted_fraction": 0.9090909090909091,
+        "mae_accepted": 0.39994973216839613,
+        "rmse_accepted": 0.5915733659102488,
+        "mae_rejected": 0.49979484781704286,
+        "max_err_rejected": 0.9995896956340857,
+        "rejection_reasons": {
+          "snr": 2
+        },
+        "stability_bpm": 8.559431583021922,
+        "stability_p95_bpm": 20.245269777366804,
+        "first_estimate_latency_s": 15.0,
+        "update_interval_s": 1.0,
+        "freq_resolution_bpm": 4.0,
+        "seconds_per_estimate": 0.003387540981004184,
+        "mean_ref_spread_bpm": 15.064434175912327,
+        "per_subject": {
+          "subject39": {
+            "n": 4,
+            "mae": 0.12488206778560951,
+            "rmse": 0.24976413557121901
+          },
+          "subject1": {
+            "n": 3,
+            "mae": 1.0002570374820958,
+            "rmse": 1.0804010819465166
+          },
+          "subject4": {
+            "n": 3,
+            "mae": 0.4994423073285598,
+            "rmse": 0.6447772462249717
+          },
+          "subject35": {
+            "n": 4,
+            "mae": 0.12492251982273217,
+            "rmse": 0.24984503964546434
+          },
+          "subject9": {
+            "n": 4,
+            "mae": 0.24989742390852143,
+            "rmse": 0.49979484781704286
+          },
+          "subject10": {
+            "n": 4,
+            "mae": 0.6251695646256472,
+            "rmse": 0.6616172780983942
+          }
+        },
+        "subject_level_mae": 0.43742848682552765,
+        "worst_subject_mae": 1.0002570374820958
+      }
+    ]
+  },
+  "recalibrated_thresholds": {
+    "5.0": {
+      "min_snr_db": -0.9988521218299864,
+      "min_peak_margin_db": 6.1162594679417275,
+      "max_disagreement_bpm": 4.768498367139736
+    },
+    "8.0": {
+      "min_snr_db": -1.707823872566223,
+      "min_peak_margin_db": 4.917328203836677,
+      "max_disagreement_bpm": 5.470273643967926
+    },
+    "10.0": {
+      "min_snr_db": -2.0864998757839204,
+      "min_peak_margin_db": 3.296789690702795,
+      "max_disagreement_bpm": 5.531727121636472
+    },
+    "15.0": {
+      "min_snr_db": -2.0826484680175783,
+      "min_peak_margin_db": 1.6134278512610793,
+      "max_disagreement_bpm": 5.7543385025568625
+    }
+  }
+}
