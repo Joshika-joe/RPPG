@@ -30,3 +30,6 @@ Thumbs.db
 build/
 .pytest_cache/
 docs/_figures/
+
+# External dataset caches (adapted, regenerable)
+checkpoints/subjects_ubfc_phys/

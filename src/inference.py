@@ -63,15 +63,19 @@ def predict_continuous(
     device: torch.device,
     batch_size: int = config.BATCH_SIZE,
     window_frames: int = config.WINDOW_FRAMES,
+    subject_root: str = config.SUBJECT_DIR,
 ) -> Dict[str, Dict]:
     """
     Returns {subject: {"pred": (T,), "gt": (T,), "hr_ref": (T,), "fps": float, "n_windows": int}}
     with pred the overlap-added continuous BVP estimate and gt the raw BVP aligned to frames.
+
+    `subject_root` selects which preprocessed store to read, so the same inference path
+    serves UBFC-rPPG and any adapted external dataset.
     """
     model.eval()
     ds = WindowDataset(
         subjects, window_frames=window_frames, stride=stride, normalize=normalize,
-        augment=False, cover_tail=True,
+        augment=False, cover_tail=True, subject_root=subject_root,
     )
     loader = DataLoader(ds, batch_size=batch_size, shuffle=False)
 

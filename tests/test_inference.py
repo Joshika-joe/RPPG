@@ -51,15 +51,12 @@ class _Identity(torch.nn.Module):
         return x.mean(dim=(1, 3, 4))
 
 
-def test_predict_continuous_and_segment(synthetic_subject, monkeypatch):
+def test_predict_continuous_and_segment(synthetic_subject):
+    """predict_continuous reads whichever store subject_root names (used for other datasets)."""
     root, name = synthetic_subject
-    import src.inference as inf
 
-    # point the dataset at the temp root
-    orig = inf.WindowDataset
-    monkeypatch.setattr(inf, "WindowDataset", lambda *a, **k: orig(*a, subject_root=root, **k))
-
-    signals = predict_continuous(_Identity(), [name], stride=30, normalize="temporal", device=torch.device("cpu"))
+    signals = predict_continuous(_Identity(), [name], stride=30, normalize="temporal",
+                                 device=torch.device("cpu"), subject_root=root)
     sig = signals[name]
     assert sig["pred"].shape == (N_FRAMES,)
     assert sig["n_windows"] == len(range(0, N_FRAMES - 150 + 1, 30))
